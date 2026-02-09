@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>四柱八字 - LuminousPath</title>
+    <title>四柱八字 - LuminousPath Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -269,7 +269,7 @@
                     } else {
                         setError(data.error || "運算數據回傳格式不正確");
                     }
-                } catch (err) { if (err.name !== 'AbortError') setError("承辦人員業務繁忙...請稍後再試"); }
+                } catch (err) { if (err.name !== 'AbortError') setError("運算引擎連線中..."); }
                 finally { if (!abortControllerRef.current?.signal.aborted) setIsLoading(false); }
             }, [gregYear, month, day, hour, minute, gender, isDst, user]);
 
@@ -363,7 +363,7 @@
                                                          onTouchMove={handleTouchMove}
                                                          onTouchEnd={handleTouchEnd}
                                                          data-index={index}
-                                                         className={`profile-item flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer border-b last:border-0 border-slate-100 dark:border-slate-800 group/item text-left ${draggedIndex === index ? 'dragging' : ''} ${touchOverIndex === index ? 'touch-over' : ''}`}>
+                                                         className={`profile-item select-none flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer border-b last:border-0 border-slate-100 dark:border-slate-800 group/item text-left ${draggedIndex === index ? 'dragging' : ''} ${touchOverIndex === index ? 'touch-over' : ''}`}>
                                                         {editingId === p.id ? (
                                                             <div className="flex items-center flex-grow gap-2" onClick={(e)=>e.stopPropagation()}>
                                                                 <input autoFocus type="text" value={editingValue} onChange={(e)=>setEditingValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(e)} className={`text-xs font-bold px-1.5 py-1 rounded border outline-none w-full ${isDark ? 'bg-slate-800 border-slate-600 text-slate-100' : 'bg-white border-slate-300 text-slate-900'}`} />
