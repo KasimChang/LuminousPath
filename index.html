@@ -40,13 +40,20 @@
         .fortune-table td, .fortune-table th { border: 1px solid rgba(71, 85, 105, 0.4); padding: 4px 0px; vertical-align: middle; text-align: center; }
         .flow-year-row { height: 38px; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: all 0.2s; }
         .highlight-year { background: rgba(234, 179, 8, 0.15) !important; box-shadow: inset 0 0 0 1px #eab308; border-radius: 2px; }
-        .dragging { opacity: 0.5; background: rgba(16, 185, 129, 0.1); border: 1px dashed #10b981; }
+        .dragging { 
+            opacity: 0.9; 
+            transform: scale(1.05); 
+            background: rgba(16, 185, 129, 0.15) !important; 
+            border: 1px solid #10b981 !important; 
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            z-index: 50;
+        }
         .loading-shimmer { background: linear-gradient(90deg, transparent 25%, rgba(16, 185, 129, 0.1) 50%, transparent 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
         .profile-dropdown-animate { animation: slideIn 0.2s ease-out; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         .safe-top { padding-top: env(safe-area-inset-top); }
-        .touch-over { background-color: rgba(16, 185, 129, 0.05); }
+        .touch-over { background-color: rgba(16, 185, 129, 0.08) !important; }
     </style>
 </head>
 <body class="flex flex-col min-h-screen transition-colors duration-300">
@@ -204,18 +211,11 @@
                 await deleteDoc(doc(getFirestore(), 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', id));
             };
 
-            // Drag & Drop
             const handleDragStart = (index) => setDraggedIndex(index);
             const handleDragOver = (e) => e.preventDefault();
-            const handleDrop = (index) => {
-                performReorder(draggedIndex, index);
-                setDraggedIndex(null);
-            };
+            const handleDrop = (index) => { performReorder(draggedIndex, index); setDraggedIndex(null); };
 
-            // Touch Drag Polyfill for iPhone
-            const handleTouchStart = (index) => {
-                setDraggedIndex(index);
-            };
+            const handleTouchStart = (index) => { setDraggedIndex(index); };
             const handleTouchMove = (e) => {
                 const touch = e.touches[0];
                 const el = document.elementFromPoint(touch.clientX, touch.clientY);
@@ -226,11 +226,8 @@
                 }
             };
             const handleTouchEnd = () => {
-                if (draggedIndex !== null && touchOverIndex !== null) {
-                    performReorder(draggedIndex, touchOverIndex);
-                }
-                setDraggedIndex(null);
-                setTouchOverIndex(null);
+                if (draggedIndex !== null && touchOverIndex !== null) { performReorder(draggedIndex, touchOverIndex); }
+                setDraggedIndex(null); setTouchOverIndex(null);
             };
 
             const handleGregChange = (val) => {
@@ -401,7 +398,7 @@
                                 <div className="flex flex-col gap-1"><span className="text-[10px] font-bold opacity-40 uppercase">日期</span><input type="number" value={day} onChange={(e)=>{const v = e.target.value === "" ? "" : Math.max(1, Math.min(31, parseInt(e.target.value))); setDay(v);}} className={`rounded px-1 text-xs border h-9 w-full ${isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300'}`} /></div>
                                 <div className="flex flex-col gap-1"><span className="text-[10px] font-bold opacity-40 uppercase">時辰</span><select value={hour} onChange={(e)=>setHour(parseInt(e.target.value))} className={`rounded px-1 text-[10px] sm:text-xs border h-9 ${isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300'}`}>{hourOptions.map((o,i) => <option key={i} value={o.val}>{o.label}</option>)}</select></div>
                                 <div className="flex flex-col gap-1"><span className="text-[10px] font-bold opacity-40 uppercase">分鐘</span><input type="number" value={minute} onChange={(e)=>{const v = e.target.value === "" ? 0 : Math.max(0, Math.min(59, parseInt(e.target.value))); setMinute(v);}} className={`rounded px-1 text-xs border h-9 w-full ${isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300'}`} /></div>
-                                <div className="flex items-center gap-1 h-9 col-span-2 sm:col-span-1"><input type="checkbox" id="dst" checked={isDst} onChange={(e)=>setIsDst(e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" /><label htmlFor="dst" className={`text-[12px] font-bold uppercase ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>夏令時間</label></div>
+                                <div className="flex items-center gap-1 h-9 col-span-2 sm:col-span-1"><input type="checkbox" id="dst" checked={isDst} onChange={(e)=>setIsDst(e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" /><label htmlFor="dst" className={`text-[11px] font-bold uppercase ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>夏令時間</label></div>
                             </div>
                         </div>
 
