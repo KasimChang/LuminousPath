@@ -24,7 +24,12 @@
             measurementId: "G-3LB4W975PE"
         };
 
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
         window.FirebaseSDK = { 
+            app, auth, db,
             firebaseConfig, initializeApp, getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, 
             getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, query, limit,
             signInWithCustomToken, signInAnonymously 
@@ -40,14 +45,7 @@
         .fortune-table td, .fortune-table th { border: 1px solid rgba(71, 85, 105, 0.4); padding: 4px 0px; vertical-align: middle; text-align: center; }
         .flow-year-row { height: 38px; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: all 0.2s; }
         .highlight-year { background: rgba(234, 179, 8, 0.15) !important; box-shadow: inset 0 0 0 1px #eab308; border-radius: 2px; }
-        .dragging { 
-            opacity: 0.9; 
-            transform: scale(1.05); 
-            background: rgba(16, 185, 129, 0.15) !important; 
-            border: 1px solid #10b981 !important; 
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            z-index: 50;
-        }
+        .dragging { opacity: 0.9; transform: scale(1.05); background: rgba(16, 185, 129, 0.15) !important; border: 1px solid #10b981 !important; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); z-index: 50; }
         .loading-shimmer { background: linear-gradient(90deg, transparent 25%, rgba(16, 185, 129, 0.1) 50%, transparent 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
         .profile-dropdown-animate { animation: slideIn 0.2s ease-out; }
@@ -77,6 +75,20 @@
             </svg>
         );
 
+        const AnalysisBox = ({ title, content, isDark }) => {
+            if (!content) return null;
+            return (
+                <div className={`p-4 sm:p-6 rounded-2xl border transition-all duration-300 ${isDark ? "bg-slate-900/60 border-slate-700" : "bg-white border-slate-200 shadow-sm"}`}>
+                    <p className="text-[12px] font-bold text-emerald-500 uppercase tracking-widest mb-3">{title}</p>
+                    <div className="space-y-2 text-xs sm:text-sm leading-relaxed opacity-90 font-medium text-left">
+                        {content.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
+                            <p key={idx}>{line}</p>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
         const App = () => {
             const CURRENT_REAL_YEAR = new Date().getFullYear();
             const [isDark, setIsDark] = useState(false); 
@@ -94,7 +106,10 @@
             const [chartData, setChartData] = useState(null);
             const [isLoading, setIsLoading] = useState(false);
             const [error, setError] = useState(null);
+            
             const abortControllerRef = useRef(null);
+            const requestVersion = useRef(0);
+            const debounceTimer = useRef(null);
 
             const [user, setUser] = useState(null);
             const [profiles, setProfiles] = useState([]);
@@ -111,33 +126,29 @@
 
             useEffect(() => {
                 if (!window.FirebaseSDK) return;
-                const { firebaseConfig, initializeApp, getAuth, onAuthStateChanged } = window.FirebaseSDK;
-                try {
-                    const app = initializeApp(firebaseConfig);
-                    const auth = getAuth(app);
-                    onAuthStateChanged(auth, (u) => { if (u && !u.isAnonymous) setUser(u); else setUser(null); });
-                } catch (e) { console.error("Firebase Error:", e); }
+                const { auth, onAuthStateChanged } = window.FirebaseSDK;
+                const unsubscribe = onAuthStateChanged(auth, (u) => { if (u && !u.isAnonymous) setUser(u); else setUser(null); });
+                return () => unsubscribe();
             }, []);
 
             useEffect(() => {
                 if (!user || !window.FirebaseSDK) { setProfiles([]); return; }
-                const { getFirestore, collection, onSnapshot, query, limit } = window.FirebaseSDK;
-                const db = getFirestore();
+                const { db, collection, onSnapshot, query, limit } = window.FirebaseSDK;
                 const q = isAdmin ? query(collection(db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles')) : query(collection(db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles'), limit(4));
                 const unsubscribe = onSnapshot(q, (snapshot) => {
                     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     data.sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
                     setProfiles(data);
-                });
+                }, (err) => console.error("Firestore Error:", err));
                 return () => unsubscribe();
             }, [user, isAdmin]);
 
             const ELEMENT_STYLES = useMemo(() => ({
-                '金': { color: isDark ? 'text-slate-400' : 'text-slate-600', bg: 'bg-slate-400' },
-                '木': { color: isDark ? 'text-emerald-500' : 'text-emerald-700', bg: 'bg-emerald-500' },
-                '水': { color: isDark ? 'text-blue-500' : 'text-blue-700', bg: 'bg-blue-500' },
-                '火': { color: isDark ? 'text-red-500' : 'text-red-600', bg: 'bg-red-500' },
-                '土': { color: isDark ? 'text-[#a57c5a]' : 'text-[#8b4513]', bg: 'bg-[#a57c5a]' },
+                '金': { color: isDark ? 'text-slate-400' : 'text-slate-600', bg: 'bg-slate-400', bar: 'bg-slate-400' },
+                '木': { color: isDark ? 'text-emerald-500' : 'text-emerald-700', bg: 'bg-emerald-500', bar: 'bg-emerald-500' },
+                '水': { color: isDark ? 'text-blue-500' : 'text-blue-700', bg: 'bg-blue-500', bar: 'bg-blue-500' },
+                '火': { color: isDark ? 'text-red-500' : 'text-red-600', bg: 'bg-red-500', bar: 'bg-red-500' },
+                '土': { color: isDark ? 'text-[#a57c5a]' : 'text-[#8b4513]', bg: 'bg-[#a57c5a]', bar: 'bg-[#a57c5a]' },
                 'none': { color: isDark ? 'text-slate-400' : 'text-slate-950', bg: isDark ? 'bg-slate-800' : 'bg-slate-200' }
             }), [isDark]);
 
@@ -151,23 +162,27 @@
             }, []);
 
             const handleGoogleLogin = async () => {
-                if (!window.FirebaseSDK) return;
-                const { getAuth, signInWithPopup, GoogleAuthProvider } = window.FirebaseSDK;
-                try { await signInWithPopup(getAuth(), new GoogleAuthProvider()); } catch (err) { setError("登入失敗"); }
+                const { auth, signInWithPopup, GoogleAuthProvider } = window.FirebaseSDK;
+                try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (err) { setError("登入失敗"); }
             };
 
-            const handleLogout = () => { if(window.FirebaseSDK) window.FirebaseSDK.signOut(window.FirebaseSDK.getAuth()); };
+            const handleLogout = () => { if(window.FirebaseSDK) window.FirebaseSDK.signOut(window.FirebaseSDK.auth); };
 
-            const handleClear = () => { setGregYear(""); setRocYear(""); setMonth(1); setDay(""); setHour(-1); setMinute(0); setIsDst(false); setChartData(null); };
+            const handleClear = () => { 
+                setGregYear(""); setRocYear(""); setMonth(1); setDay(""); setHour(-1); setMinute(0); setIsDst(false); 
+                setChartData(null); setError(null); setIsLoading(false); 
+                requestVersion.current += 1;
+                if (debounceTimer.current) clearTimeout(debounceTimer.current);
+            };
+
             const handleLoadCase = () => { handleGregChange(1977); setMonth(1); setDay(24); setHour(9); setMinute(0); setIsDst(false); };
 
             const performReorder = async (fromIdx, toIdx) => {
                 if (fromIdx === toIdx || !window.FirebaseSDK) return;
+                const { db, doc, updateDoc } = window.FirebaseSDK;
                 const newProfiles = [...profiles];
                 const [movedItem] = newProfiles.splice(fromIdx, 1);
                 newProfiles.splice(toIdx, 0, movedItem);
-                const { getFirestore, doc, updateDoc } = window.FirebaseSDK;
-                const db = getFirestore();
                 const updates = newProfiles.map((p, i) => updateDoc(doc(db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', p.id), { order: i }));
                 await Promise.all(updates);
             };
@@ -177,7 +192,7 @@
                 if (!isAdmin && profiles.length >= 4) return;
                 if (!saveInputName.trim()) return;
                 setIsSaving(true);
-                const { getFirestore, doc, setDoc } = window.FirebaseSDK;
+                const { db, doc, setDoc } = window.FirebaseSDK;
                 let newId = `profile_${Date.now()}`;
                 if (!isAdmin) {
                     const existingIds = profiles.map(p => p.id);
@@ -185,7 +200,7 @@
                     if (slot) newId = `profile_${slot}`;
                 }
                 try {
-                    await setDoc(doc(getFirestore(), 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', newId), {
+                    await setDoc(doc(db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', newId), {
                         name: saveInputName.trim(), gregYear, month, day, hour, minute, gender, isDst, createdAt: new Date().toISOString(), order: profiles.length
                     });
                     setSaveInputName("");
@@ -198,17 +213,17 @@
             const handleSaveEdit = async (e) => {
                 if(e) e.stopPropagation();
                 if (!editingValue.trim() || !window.FirebaseSDK) return;
-                const { getFirestore, doc, updateDoc } = window.FirebaseSDK;
+                const { db, doc, updateDoc } = window.FirebaseSDK;
                 const tid = editingId;
                 setEditingId(null);
-                try { await updateDoc(doc(getFirestore(), 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', tid), { name: editingValue.trim() }); } catch (err) {}
+                try { await updateDoc(doc(db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', tid), { name: editingValue.trim() }); } catch (err) {}
             };
 
             const handleDeleteProfile = async (id, e) => {
                 e.stopPropagation();
                 if (!window.FirebaseSDK) return;
-                const { getFirestore, doc, deleteDoc } = window.FirebaseSDK;
-                await deleteDoc(doc(getFirestore(), 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', id));
+                const { db, doc, deleteDoc } = window.FirebaseSDK;
+                await deleteDoc(doc(db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', id));
             };
 
             const handleDragStart = (index) => setDraggedIndex(index);
@@ -243,43 +258,48 @@
             };
 
             const fetchBaziData = useCallback(async () => {
-                if (!gregYear || !month || !day) return;
-                if (abortControllerRef.current) abortControllerRef.current.abort();
-                abortControllerRef.current = new AbortController();
-                setIsLoading(true);
-                try {
-                    const headers = { "Content-Type": "application/json" };
-                    if (user) {
-                        const token = await user.getIdToken();
-                        headers["Authorization"] = `Bearer ${token}`;
+                if (!gregYear || !month || !day) { setIsLoading(false); setError(null); return; }
+
+                if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+                debounceTimer.current = setTimeout(async () => {
+                    const currentVersion = ++requestVersion.current;
+                    if (abortControllerRef.current) abortControllerRef.current.abort();
+                    abortControllerRef.current = new AbortController();
+                    
+                    setIsLoading(true);
+                    setError(null); 
+
+                    try {
+                        const headers = { "Content-Type": "application/json" };
+                        if (user) { const token = await user.getIdToken(); headers["Authorization"] = `Bearer ${token}`; }
+                        const response = await fetch(WORKER_URL, {
+                            method: "POST",
+                            headers: headers,
+                            body: JSON.stringify({ gregYear, month, day, hour, minute, gender, isDst }),
+                            signal: abortControllerRef.current.signal
+                        });
+                        const data = await response.json();
+                        if (currentVersion !== requestVersion.current) return;
+                        if (data && data.pillars) { setChartData(data); setError(null); } 
+                        else { setError(data.error || "運算數據回傳格式不正確"); }
+                    } catch (err) { 
+                        if (currentVersion !== requestVersion.current) return;
+                        if (err.name !== 'AbortError') setError("運算引擎連線中..."); 
+                    } finally { 
+                        if (currentVersion === requestVersion.current) setIsLoading(false); 
                     }
-                    const response = await fetch(WORKER_URL, {
-                        method: "POST",
-                        headers: headers,
-                        body: JSON.stringify({ gregYear, month, day, hour, minute, gender, isDst }),
-                        signal: abortControllerRef.current.signal
-                    });
-                    const data = await response.json();
-                    if (data && data.pillars) {
-                        setChartData(data);
-                        setError(null);
-                    } else {
-                        setError(data.error || "運算數據回傳格式不正確");
-                    }
-                } catch (err) { if (err.name !== 'AbortError') setError("運算引擎連線中..."); }
-                finally { if (!abortControllerRef.current?.signal.aborted) setIsLoading(false); }
+                }, 300);
             }, [gregYear, month, day, hour, minute, gender, isDst, user]);
 
-            useEffect(() => { const t = setTimeout(fetchBaziData, 500); return () => { clearTimeout(t); if (abortControllerRef.current) abortControllerRef.current.abort(); }; }, [fetchBaziData]);
-
-            const loadProfile = (p) => { if (editingId) return; handleGregChange(p.gregYear); setMonth(p.month); setDay(p.day); setHour(p.hour); setMinute(p.minute); setGender(p.gender); setIsDst(p.isDst || false); };
+            useEffect(() => { fetchBaziData(); return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); if (abortControllerRef.current) abortControllerRef.current.abort(); }; }, [fetchBaziData]);
 
             const CharacterWithElement = ({ char, element, color, isSmall = false, highlight = false }) => {
                 if (!char) return null;
                 const style = ELEMENT_STYLES[color || "none"] || ELEMENT_STYLES["none"];
                 const charSize = isSmall ? "text-lg" : "text-[clamp(1.5rem,7vw,3.2rem)]";
                 return (
-                    <div className="relative inline-flex items-center justify-center">
+                    <div className="relative inline-flex items-center justify-center text-center">
                         {highlight && <div className="absolute w-10 h-10 md:w-14 md:h-14 rounded-full animate-pulse bg-emerald-500/20 blur-[1px]"></div>}
                         <div className={`relative flex items-baseline ${style.color} font-serif z-10 transition-colors duration-500`}>
                             <span className={`${charSize} leading-none tracking-tight`}>{char}</span>
@@ -299,15 +319,17 @@
                 }, 0) : 0;
                 const isStrong = isFortune ? true : (threshold > 0 && !isDayMaster && freq >= threshold);
                 const style = ELEMENT_STYLES[color || "none"] || ELEMENT_STYLES["none"];
-                const baseStyles = "rounded border font-bold flex items-center justify-center transition-all duration-500 overflow-hidden";
+                const baseStyles = "rounded border font-bold flex items-center justify-center transition-all duration-500 overflow-hidden text-center mx-auto";
                 let colorStyles = (color === "none" || !color) ? (isDark ? "bg-slate-800 text-slate-400 border-slate-700" : "bg-white border-slate-300 text-slate-950") : (isDayMaster ? "bg-yellow-500 text-slate-950 border-yellow-600 shadow-md" : (isStrong ? `${style.bg} text-white border-transparent shadow-lg ring-1 ring-white/10` : (isDark ? "bg-slate-800 text-slate-200 border-slate-700 shadow-inner" : "bg-slate-100 text-slate-700 border-slate-200 shadow-sm")));
                 const paddingStyles = isVertical ? "px-0.5 py-1 sm:px-1.5 sm:py-2 min-h-[4.5rem]" : "px-1.5 py-0.5 sm:px-3 sm:py-1";
                 const fontStyles = isVertical ? `${extraSmall ? 'text-[9.5px]' : 'text-[11px]'} sm:text-sm leading-tight` : "text-[clamp(0.75rem,2.8vw,1.1rem)] leading-none";
                 return <div className={`${baseStyles} ${colorStyles} ${paddingStyles} ${fontStyles}`} style={isVertical ? { writingMode: 'vertical-rl' } : {}}>{name}</div>;
             };
 
+            const loadProfile = (p) => { if (editingId) return; handleGregChange(p.gregYear); setMonth(p.month); setDay(p.day); setHour(p.hour); setMinute(p.minute); setGender(p.gender); setIsDst(p.isDst || false); };
+
             return (
-                <div className={`flex-grow safe-top p-2 sm:p-4 md:p-8 font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+                <div className={`flex-grow safe-top p-2 sm:p-4 md:p-8 font-sans transition-colors duration-300 ${isDark ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-900"}`}>
                     <div className="max-w-[1200px] mx-auto space-y-3 sm:space-y-6">
                         
                         <div className="flex flex-col gap-3 border-b border-slate-800/50 pb-3">
@@ -346,29 +368,19 @@
                                             <input type="text" value={saveInputName} onChange={(e)=>setSaveInputName(e.target.value)} placeholder="名稱..." className={`bg-transparent border-0 text-[10px] sm:text-xs font-bold px-1.5 py-1 outline-none w-16 sm:w-28 placeholder:opacity-30 ${isDark ? 'text-slate-200' : 'text-slate-800'}`} />
                                             <button onClick={handleSaveProfile} disabled={isSaving} className="bg-emerald-600 hover:bg-emerald-500 text-white text-[12px] px-2 py-1 rounded shadow-sm disabled:opacity-50 transition-all">Save</button>
                                         </div>
-                                        <div className="relative group">
+                                        <div className="relative group text-left">
                                             <button className="px-3 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold shadow-md hover:bg-blue-500 transition-all">命盤切換 ({profiles.length})</button>
                                             <div className="fixed inset-x-4 sm:absolute sm:inset-x-auto sm:right-0 sm:left-auto top-32 sm:top-full mt-2 sm:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] profile-dropdown-animate no-scrollbar overflow-y-auto max-h-[60vh]">
                                                 {profiles.length === 0 ? <div className="p-4 text-[10px] text-center opacity-50 italic">尚未儲存</div> : profiles.map((p, index) => (
-                                                    <div key={p.id} 
-                                                         onClick={() => loadProfile(p)} 
-                                                         draggable 
-                                                         onDragStart={() => handleDragStart(index)} 
-                                                         onDragOver={handleDragOver} 
-                                                         onDrop={() => handleDrop(index)}
-                                                         onTouchStart={() => handleTouchStart(index)}
-                                                         onTouchMove={handleTouchMove}
-                                                         onTouchEnd={handleTouchEnd}
-                                                         data-index={index}
-                                                         className={`profile-item select-none flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer border-b last:border-0 border-slate-100 dark:border-slate-800 group/item text-left ${draggedIndex === index ? 'dragging' : ''} ${touchOverIndex === index ? 'touch-over' : ''}`}>
+                                                    <div key={p.id} onClick={() => loadProfile(p)} draggable onDragStart={() => handleDragStart(index)} onDragOver={handleDragOver} onDrop={() => handleDrop(index)} onTouchStart={() => handleTouchStart(index)} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} data-index={index} className={`profile-item select-none flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer border-b last:border-0 border-slate-100 dark:border-slate-800 group/item text-left ${draggedIndex === index ? 'dragging' : ''} ${touchOverIndex === index ? 'touch-over' : ''}`}>
                                                         {editingId === p.id ? (
                                                             <div className="flex items-center flex-grow gap-2" onClick={(e)=>e.stopPropagation()}>
-                                                                <input autoFocus type="text" value={editingValue} onChange={(e)=>setEditingValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(e)} className={`text-xs font-bold px-1.5 py-1 rounded border outline-none w-full ${isDark ? 'bg-slate-800 border-slate-600 text-slate-100' : 'bg-white border-slate-300 text-slate-900'}`} />
+                                                                <input autoFocus type="text" value={editingValue} onChange={(e)=>setEditingValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(e)} className={`text-xs font-bold px-1.5 py-1 rounded border outline-none w-full ${isDark ? "bg-slate-800 border-slate-600 text-slate-100" : "bg-white border-slate-300 text-slate-900"}`} />
                                                                 <button onClick={handleSaveEdit} className="text-emerald-500 p-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/></svg></button>
                                                                 <button onClick={handleCancelEdit} className="text-slate-400 p-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
                                                             </div>
                                                         ) : (
-                                                            <div className="flex items-center flex-grow truncate gap-2">
+                                                            <div className="flex items-center flex-grow truncate gap-2 text-left">
                                                                 <div className="p-1 text-slate-300 cursor-grab active:cursor-grabbing"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8h16M4 16h16"/></svg></div>
                                                                 <div className="flex flex-col truncate">
                                                                     <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{p.name}</span>
@@ -405,21 +417,21 @@
                         {isLoading && <div className="h-1 loading-shimmer w-full rounded-full"></div>}
                         {error && <div className="p-2 bg-red-500/10 border border-red-500 text-red-500 text-[10px] font-bold rounded-lg text-center leading-relaxed font-mono">{error}</div>}
 
-                        <div className={`rounded-xl border overflow-hidden shadow-xl transition-all duration-300 ${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'} ${isDark ? 'bg-slate-900/40 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <div className={`rounded-xl border overflow-hidden shadow-xl transition-all duration-300 ${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'} ${isDark ? "bg-slate-900/40 border-slate-700" : "bg-white border-slate-200"}`}>
                             {['四柱', '主星', '天干', '地支', '藏干', '副星'].map((label, rIdx) => {
                                 const rowKeys = ['pillar', 'main', 'stem', 'branch', 'sub_char', 'sub_star'];
                                 const id = rowKeys[rIdx];
                                 return (
-                                    <div key={id} className={`grid grid-cols-[16%_21%_21%_21%_21%] border-b last:border-0 ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
-                                        <div className={`flex items-center justify-center border-r font-bold text-[clamp(0.7rem,3vw,1rem)] uppercase text-center ${isDark ? 'bg-slate-900/40 text-slate-500 border-slate-700' : 'bg-slate-50/50 text-slate-400'}`}>{label}</div>
+                                    <div key={id} className={`grid grid-cols-[16%_21%_21%_21%_21%] border-b last:border-0 ${isDark ? "border-slate-700" : "border-slate-200"}`}>
+                                        <div className={`flex items-center justify-center border-r font-bold text-[clamp(0.7rem,3vw,1rem)] uppercase text-center ${isDark ? "bg-slate-900/40 text-slate-500 border-slate-700" : "bg-slate-50/50 text-slate-400"}`}>{label}</div>
                                         {(chartData && chartData.pillars) ? chartData.pillars.map((p, pIdx) => (
-                                            <div key={pIdx} className={`relative flex flex-col items-center justify-center p-1.5 sm:p-4 border-r last:border-0 ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
-                                                {id === 'pillar' && <span className={`font-bold text-[10px] sm:text-sm ${p.label === '日柱' ? (isDark ? 'text-yellow-500' : 'text-yellow-600') : (isDark ? 'text-slate-300' : 'text-slate-600')}`}>{p.label}</span>}
+                                            <div key={pIdx} className={`relative flex flex-col items-center justify-center p-1.5 sm:p-4 border-r last:border-0 ${isDark ? "border-slate-700" : "border-slate-200"}`}>
+                                                {id === 'pillar' && <span className={`font-bold text-[10px] sm:text-sm ${p.label === '日柱' ? (isDark ? "text-yellow-500" : "text-yellow-600") : (isDark ? "text-slate-300" : "text-slate-600")}`}>{p.label}</span>}
                                                 {id === 'main' && (hour === -1 && pIdx === 3 ? <span className="opacity-20 text-[10px]">－</span> : <StarLabel starInfo={p.main} isDayMaster={p.label === '日柱'} />)}
                                                 {id === 'stem' && (hour === -1 && pIdx === 3 ? <span className="text-2xl font-serif text-emerald-500">吉</span> : <CharacterWithElement char={p.stem} element={p.stemElement} color={p.stemColor} highlight={chartData && chartData.yueLingChar === p.stem && pIdx !== 2} />)}
                                                 {id === 'branch' && (hour === -1 && pIdx === 3 ? <span className="text-2xl font-serif text-emerald-500">時</span> : <CharacterWithElement char={p.branch} element={p.branchElement} color={p.branchColor} />)}
-                                                {id === 'sub_char' && (hour === -1 && pIdx === 3 ? <span className="opacity-20 text-[10px]">－</span> : <div className="grid grid-cols-3 w-full gap-0 px-0.5">{p.sub?.map((s, sIdx) => <div key={sIdx} className="flex justify-center items-center h-8"><CharacterWithElement char={s.char} element={s.star?.element} color={s.star?.color} isSmall highlight={chartData && pIdx === 1 && s.char === chartData.yueLingChar} /></div>)}</div>)}
-                                                {id === 'sub_star' && (hour === -1 && pIdx === 3 ? <span className="opacity-20 text-[10px]">－</span> : <div className="grid grid-cols-3 w-full gap-0 items-start px-px">{p.sub?.map((s, sIdx) => <div key={sIdx} className="flex flex-col items-center flex-shrink-0"><span className={`text-[8px] font-bold mb-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{s.type}</span>{s.star ? <StarLabel starInfo={s.star} isVertical extraSmall /> : <span className="opacity-10 text-[10px]">－</span>}</div>)}</div>)}
+                                                {id === 'sub_char' && (hour === -1 && pIdx === 3 ? <span className="opacity-20 text-[10px]">－</span> : <div className="grid grid-cols-3 w-full gap-0 px-0.5">{p.sub?.map((s, sIdx) => <div key={sIdx} className="flex justify-center items-center h-8 text-center"><CharacterWithElement char={s.char} element={s.star?.element} color={s.star?.color} isSmall highlight={chartData && pIdx === 1 && s.char === chartData.yueLingChar} /></div>)}</div>)}
+                                                {id === 'sub_star' && (hour === -1 && pIdx === 3 ? <span className="opacity-20 text-[10px]">－</span> : <div className="grid grid-cols-3 w-full gap-0 items-start px-px">{p.sub?.map((s, sIdx) => <div key={sIdx} className="flex flex-col items-center flex-shrink-0 text-center"><span className={`text-[8px] font-bold mb-0.5 ${isDark ? "text-slate-500" : "text-slate-400"}`}>{s.type}</span>{s.star ? <StarLabel starInfo={s.star} isVertical extraSmall /> : <span className="opacity-10 text-[10px]">－</span>}</div>)}</div>)}
                                             </div>
                                         )) : [1,2,3,4].map(i => <div key={i} className="h-12 border-r last:border-0 animate-pulse bg-slate-200/20"></div>)}
                                     </div>
@@ -432,26 +444,35 @@
                                 <span className="text-[10px] sm:text-xs font-bold uppercase text-slate-500 whitespace-nowrap">十神標記:</span>
                                 <div className="flex gap-1.5">
                                     {[0, 2, 3, 4, 5, 6].map(n => (
-                                        <button key={n} onClick={()=>setThreshold(n)} className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg border text-[10px] sm:text-sm font-bold transition-all flex items-center justify-center shrink-0 ${threshold === n ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg' : isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500 shadow-sm'}`}>{n||'OFF'}</button>
+                                        <button key={n} onClick={()=>setThreshold(n)} className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg border text-[10px] sm:text-sm font-bold transition-all flex items-center justify-center shrink-0 ${threshold === n ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg' : isDark ? "bg-slate-800 border-slate-700 text-slate-400" : "bg-white border-slate-200 text-slate-500 shadow-sm"}`}>{n||'OFF'}</button>
                                     ))}
                                 </div>
                             </div>
                             {!isLoggedIn && <span className="text-[9px] font-bold text-slate-950 dark:text-slate-400 italic">登入解鎖更多功能</span>}
                         </div>
 
+                        <div className="space-y-4">
+                            <AnalysisBox title="六十甲子" content={chartData?.dayPillarAnalysis} isDark={isDark} />
+                        </div>
+
                         <div className="divider-gradient my-2 opacity-30"></div>
 
-                        {chartData && chartData.timing && (<div className={`p-4 sm:p-6 rounded-2xl border ${isDark ? 'bg-slate-900/60 border-slate-700' : 'bg-white border-slate-200 shadow-sm'}`}><div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left"><div className="space-y-1"><p className="text-[12px] font-bold text-emerald-500 uppercase tracking-widest">出生節氣資訊</p><p className="text-xs sm:text-sm font-bold opacity-90">農曆：<span className="text-emerald-600 dark:text-emerald-400">{toTC(chartData.timing.lunarStr)}</span></p><p className={`text-[11px] sm:text-xs text-slate-500`}>{toTC(chartData.timing.prevNodeName)}後 {chartData.timing.prevD}天 | {toTC(chartData.timing.nextNodeName)}前 {chartData.timing.nextD}天</p></div><div className="space-y-1"><p className="text-[12px] font-bold text-blue-500 uppercase tracking-widest">起運資訊</p><p className="text-xs sm:text-sm font-bold">約為 <span className="text-blue-500">{chartData.timing.startDate}</span></p><p className="text-[11px] font-bold opacity-60 text-blue-600">出生後 {chartData.timing.startAge.y}歲 {chartData.timing.startAge.m || 0}個月 {chartData.timing.startAge.d || 0}天 起大運</p></div></div></div>)}
+                        {chartData && chartData.timing && (<div className={`p-4 sm:p-6 rounded-2xl border ${isDark ? "bg-slate-900/60 border-slate-700" : "bg-white border-slate-200 shadow-sm"} text-left`}><div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div className="space-y-1"><p className="text-[12px] font-bold text-emerald-500 uppercase tracking-widest">出生節氣資訊</p><p className="text-xs sm:text-sm font-bold opacity-90">農曆：<span className="text-emerald-600 dark:text-emerald-400">{toTC(chartData.timing.lunarStr)}</span></p><p className={`text-[11px] sm:text-xs text-slate-500`}>{toTC(chartData.timing.prevNodeName)}後 {chartData.timing.prevD}天 | {toTC(chartData.timing.nextNodeName)}前 {chartData.timing.nextD}天</p></div><div className="space-y-1"><p className="text-[12px] font-bold text-blue-500 uppercase tracking-widest">起運資訊</p><p className="text-xs sm:text-sm font-bold">約為 <span className="text-blue-500">{chartData.timing.startDate}</span></p><p className="text-[11px] font-bold opacity-60 text-blue-600">出生後 {chartData.timing.startAge.y}歲 {chartData.timing.startAge.m || 0}個月 {chartData.timing.startAge.d || 0}天 起大運</p></div></div></div>)}
 
-                        {chartData && chartData.fortunePillars && (<div className={`rounded-2xl border ${isDark ? 'border-slate-700 shadow-2xl' : 'border-slate-800/50 shadow-xl'} overflow-hidden overflow-x-auto no-scrollbar`}><table className="fortune-table"><thead className={isDark ? 'bg-slate-900 border-b border-slate-700' : 'bg-white'}><tr className="text-slate-400 font-bold uppercase tracking-widest text-[9px] sm:text-[10px]"><th className={`w-[11%] text-center ${isDark ? 'bg-slate-900' : 'bg-white'}`}>項目</th>{chartData.fortunePillars.map((p, i) => <th key={i} className={`border-l ${isDark ? 'border-slate-700' : 'border-slate-800/30'} text-center`}>{p.label}</th>)}</tr></thead><tbody className={isDark ? 'bg-slate-900/20' : 'bg-white'}><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center ${isDark ? 'bg-slate-900/50' : 'bg-slate-100'}`}>十神</td>{chartData.fortunePillars.map((p, i) => <td key={i} className={`px-px text-center border-l ${isDark ? 'border-slate-700/30' : 'border-slate-800/10'}`}>{p.label === '童限' ? null : <StarLabel starInfo={p.tenGod} isFortune extraSmall /> }</td>)}</tr><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center ${isDark ? 'bg-slate-900/50' : 'bg-slate-100'}`}>運程</td>{chartData.fortunePillars.map((p, i) => (<td key={i} className={`text-center border-l ${isDark ? 'border-slate-700/30' : 'border-slate-800/10'}`}>{p.stem ? (<div className="flex flex-col items-center justify-center"><div className="flex gap-px items-center leading-none font-serif font-bold text-[11px] sm:text-lg"><span className={ELEMENT_STYLES[p.stemColor || "none"].color}>{p.stem}</span><span className={ELEMENT_STYLES[p.branchColor || "none"].color}>{p.branch}</span></div>{p.tenGod && <div className="text-[8px] sm:text-[10px] flex gap-1 mt-0.5 leading-none font-black opacity-60 uppercase text-center"><span className={ELEMENT_STYLES[p.tenGod.color || "none"].color}>{p.tenGod.element}</span></div>}</div>) : <span className="opacity-20 text-[10px]">－</span>}</td>))}</tr><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center ${isDark ? 'bg-slate-900/50' : 'bg-slate-100'}`}>西曆</td>{chartData.fortunePillars.map((p, i) => <td key={i} className={`text-slate-400 font-bold text-[9px] sm:text-xs text-center border-l ${isDark ? 'border-slate-700/30' : 'border-slate-800/10'}`}>{p.startYear}</td>)}</tr><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center border-b-2 ${isDark ? 'bg-slate-900/50 border-slate-700' : 'bg-white border-slate-800/50'}`}>周歲</td>{chartData.fortunePillars.map((p, i) => <td key={i} className={`text-blue-400 font-bold text-[9px] sm:text-xs border-b-2 text-center border-l ${isDark ? 'border-slate-700' : 'border-slate-800/10'} ${isDark ? 'border-slate-700' : 'border-slate-800/50'}`}>{p.age}</td>)}</tr><tr><td className={`text-slate-700 font-bold text-[9px] sm:text-xs uppercase text-center ${isDark ? 'bg-slate-900/50' : 'bg-slate-100'}`}>流年</td>{chartData.fortunePillars.map((p, pIdx) => { const startOffset = 10 - p.flowYears.length; return (<td key={pIdx} className={`p-0 align-top border-l ${isDark ? 'border-slate-700/30' : 'border-slate-800/10'}`}><div className="flex flex-col">{[...Array(10)].map((_, rowIndex) => { const dataIdx = rowIndex - startOffset; const fy = (dataIdx >= 0) ? p.flowYears[dataIdx] : null; if (!fy) return <div key={rowIndex} className="flow-year-row"></div>; return (<div key={rowIndex} className={`flow-year-row ${rowIndex === 4 ? (isDark ? 'border-b-2 border-slate-600/50' : 'border-b-2 border-slate-400/50') : 'border-b border-slate-800/10'} last:border-0 ${fy.year === CURRENT_REAL_YEAR ? 'highlight-year' : ''}`}><div className="flex items-center gap-px font-serif leading-none font-bold text-[10px] sm:text-[13px]"><span className={ELEMENT_STYLES[fy.stemColor || "none"].color}>{fy.stem}</span><span className={isLoggedIn ? "" : (isDark ? 'text-slate-400' : 'text-slate-950')}>{fy.branch}</span></div></div>);})}</div></td>);})}</tr></tbody></table></div>)}
+                        {chartData && chartData.fortunePillars && (<div className={`rounded-2xl border ${isDark ? "border-slate-700 shadow-2xl" : "border-slate-800/50 shadow-xl"} overflow-hidden overflow-x-auto no-scrollbar`}><table className="fortune-table"><thead className={isDark ? "bg-slate-900 border-b border-slate-700" : "bg-white"}><tr className="text-slate-400 font-bold uppercase tracking-widest text-[9px] sm:text-[10px]"><th className={`w-[11%] text-center ${isDark ? "bg-slate-900" : "bg-white"}`}>項目</th>{chartData.fortunePillars.map((p, i) => <th key={i} className={`border-l ${isDark ? "border-slate-700" : "border-slate-800/30"} text-center`}>{p.label}</th>)}</tr></thead><tbody className={isDark ? "bg-slate-900/20" : "bg-white"}><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>十神</td>{chartData.fortunePillars.map((p, i) => <td key={i} className={`px-px text-center border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}>{p.label === '童限' ? null : <StarLabel starInfo={p.tenGod} isFortune extraSmall /> }</td>)}</tr><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>運程</td>{chartData.fortunePillars.map((p, i) => (<td key={i} className={`text-center border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}>{p.stem ? (<div className="flex flex-col items-center justify-center text-center"><div className="flex gap-px items-center justify-center leading-none font-serif font-bold text-[11px] sm:text-lg"><span className={ELEMENT_STYLES[p.stemColor || "none"].color}>{p.stem}</span><span className={ELEMENT_STYLES[p.branchColor || "none"].color}>{p.branch}</span></div>{p.tenGod && <div className="text-[8px] sm:text-[10px] flex gap-1 mt-0.5 leading-none font-black opacity-60 uppercase text-center justify-center"><span className={ELEMENT_STYLES[p.tenGod.color || "none"].color}>{p.tenGod.element}</span></div>}</div>) : <span className="opacity-20 text-[10px]">－</span>}</td>))}</tr><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>西曆</td>{chartData.fortunePillars.map((p, i) => <td key={i} className={`text-slate-400 font-bold text-[9px] sm:text-xs text-center border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}>{p.startYear}</td>)}</tr><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center border-b-2 ${isDark ? "bg-slate-900/50 border-slate-700" : "bg-white border-slate-800/50"}`}>周歲</td>{chartData.fortunePillars.map((p, i) => <td key={i} className={`text-blue-400 font-bold text-[9px] sm:text-xs border-b-2 text-center border-l ${isDark ? "border-slate-800/10" : "border-slate-800/10"} ${isDark ? "border-slate-700" : "border-slate-800/50"}`}>{p.age}</td>)}</tr><tr><td className={`text-slate-700 font-bold text-[9px] sm:text-xs uppercase text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>流年</td>{chartData.fortunePillars.map((p, pIdx) => { const startOffset = 10 - p.flowYears.length; return (<td key={pIdx} className={`p-0 align-top border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}><div className="flex flex-col">{[...Array(10)].map((_, rowIndex) => { const dataIdx = rowIndex - startOffset; const fy = (dataIdx >= 0) ? p.flowYears[dataIdx] : null; if (!fy) return <div key={rowIndex} className="flow-year-row"></div>; return (<div key={rowIndex} className={`flow-year-row ${rowIndex === 4 ? (isDark ? 'border-b-2 border-slate-600/50' : 'border-b-2 border-slate-400/50') : 'border-b border-slate-800/10'} last:border-0 ${fy.year === CURRENT_REAL_YEAR ? 'highlight-year' : ''}`}><div className="flex items-center gap-px font-serif leading-none font-bold text-[10px] sm:text-[13px] text-center justify-center"><span className={ELEMENT_STYLES[fy.stemColor || "none"].color}>{fy.stem}</span><span className={isLoggedIn ? "" : (isDark ? 'text-slate-400' : 'text-slate-950')}>{fy.branch}</span></div></div>);})}</div></td>);})}</tr></tbody></table></div>)}
+
+                        <div className="space-y-4">
+                            <AnalysisBox title="流年點評" content={chartData?.flowYearAnalysis} isDark={isDark} />
+                        </div>
                     </div>
+
+                    <div className="mt-10 mb-6 pb-6 border-slate-200 dark:border-slate-800 text-center"><p className="text-[clamp(11.5px,2.8vw,16px)] leading-relaxed md:leading-loose opacity-70 font-medium max-w-[50rem] md:max-w-[85ch] mx-auto font-serif italic tracking-wide">“命理不是預言未來的水晶球，而是一份解碼你的「出廠設定」說明書。命盤揭示的是每個人獨一無二的原始劇本。學命理，是學會閱讀自己，用理解取代迷信。理解命的邏輯，就能在敬畏中找到自信，讓命運掌握在自己手裡。”</p></div>
 
                     <footer className={`py-8 sm:py-16 border-t mt-auto transition-colors duration-300 ${isDark ? 'bg-slate-950 border-slate-800 text-slate-400' : 'bg-white border-slate-200 text-slate-500'}`}>
                         <div className="max-w-[1200px] mx-auto px-4 sm:px-8 text-center sm:text-left">
-                            <div className="mb-6 pb-6 border-b border-slate-200 dark:border-slate-800"><p className="text-[clamp(11.5px,2.8vw,16px)] leading-relaxed md:leading-loose opacity-70 font-medium max-w-[50rem] md:max-w-[85ch] mx-auto text-center font-serif italic tracking-wide">“命理不是預言未來的水晶球，而是一份解碼你的「出廠設定」說明書。命盤揭示的是每個人獨一無二的原始劇本。學命理，是學會閱讀自己，用理解取代迷信。理解命的邏輯，就能在敬畏中找到自信，讓命運掌握在自己手裡。”</p></div>
-                            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                            <div className="flex flex-col md:flex-row justify-between items-center gap-6 text-left">
                                 <div className="flex flex-row items-center justify-between md:justify-start gap-4 sm:gap-10 w-full md:w-auto">
-                                    <div className="flex flex-col text-left">
+                                    <div className="flex flex-col">
                                         <span className="text-[10px] uppercase font-black tracking-widest opacity-60 leading-tight">Created by</span>
                                         <span className="text-xs sm:text-sm font-bold tracking-tight">kasimchang</span>
                                     </div>
@@ -461,7 +482,7 @@
                                         <span className="text-[9px] uppercase font-black text-red-500/80 leading-none whitespace-nowrap">捐款支持做好事</span>
                                     </a>
                                     <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 hidden md:block"></div>
-                                    <div className="flex flex-col text-left">
+                                    <div className="flex flex-col">
                                         <span className="text-[10px] uppercase font-black tracking-widest opacity-60 leading-tight">Copyright</span>
                                         <span className="text-xs sm:text-sm font-bold tracking-tight italic whitespace-nowrap">© 2026 LuminousPath</span>
                                     </div>
