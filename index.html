@@ -43,18 +43,14 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .fortune-table { table-layout: fixed; width: 100%; border-collapse: collapse; }
         .fortune-table td, .fortune-table th { border: 1px solid rgba(71, 85, 105, 0.4); padding: 4px 0px; vertical-align: middle; text-align: center; }
-        .flow-year-row { height: 38px; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: all 0.2s; }
+        .flow-year-row { height: 38px; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: all 0.2s; position: relative; }
         .highlight-year { background: rgba(234, 179, 8, 0.15) !important; box-shadow: inset 0 0 0 1px #eab308; border-radius: 2px; }
-        .dragging { opacity: 0.9; transform: scale(1.05); background: rgba(16, 185, 129, 0.15) !important; border: 1px solid #10b981 !important; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); z-index: 50; }
+        .safe-top { padding-top: env(safe-area-inset-top); }
         .loading-shimmer { background: linear-gradient(90deg, transparent 25%, rgba(16, 185, 129, 0.1) 50%, transparent 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-        .profile-dropdown-animate { animation: slideIn 0.2s ease-out; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .safe-top { padding-top: env(safe-area-inset-top); }
-        .touch-over { background-color: rgba(16, 185, 129, 0.08) !important; }
     </style>
 </head>
-<body class="flex flex-col min-h-screen transition-colors duration-300">
+<body class="flex flex-col min-h-screen transition-colors duration-300 text-center">
     <div id="root" class="flex-grow flex flex-col"></div>
 
     <script type="text/babel">
@@ -67,12 +63,7 @@
         const toTC = (str) => { if (!str) return ""; return str.replace(/腊/g, "臘").replace(/惊蛰/g, "驚蟄").replace(/時/g, "時").replace(/節/g, "節").replace(/氣/g, "氣"); };
 
         const GoogleIcon = () => (
-            <svg className="w-4 h-4 mr-2" viewBox="0 0 48 48">
-                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
-                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
-                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"></path>
-                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
-            </svg>
+            <svg className="w-4 h-4 mr-2" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path></svg>
         );
 
         const AnalysisBox = ({ title, content, isDark }) => {
@@ -81,9 +72,7 @@
                 <div className={`p-4 sm:p-6 rounded-2xl border transition-all duration-300 ${isDark ? "bg-slate-900/60 border-slate-700" : "bg-white border-slate-200 shadow-sm"}`}>
                     <p className="text-[12px] font-bold text-emerald-500 uppercase tracking-widest mb-3">{title}</p>
                     <div className="space-y-2 text-xs sm:text-sm leading-relaxed opacity-90 font-medium text-left">
-                        {content.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
-                            <p key={idx}>{line}</p>
-                        ))}
+                        {content.split('\n').filter(line => line.trim() !== '').map((line, idx) => (<p key={idx}>{line}</p>))}
                     </div>
                 </div>
             );
@@ -103,26 +92,102 @@
             const [hour, setHour] = useState(4); 
             const [minute, setMinute] = useState(10);
 
+            const [calYear, setCalYear] = useState(new Date().getFullYear());
+            const [calMonth, setCalMonth] = useState(new Date().getMonth() + 1);
+            const [calendarData, setCalendarData] = useState(null);
+            const [isCalLoading, setIsCalLoading] = useState(false);
+
             const [chartData, setChartData] = useState(null);
             const [isLoading, setIsLoading] = useState(false);
             const [error, setError] = useState(null);
             
-            const abortControllerRef = useRef(null);
-            const requestVersion = useRef(0);
-            const debounceTimer = useRef(null);
+            const baziAbortRef = useRef(null);
+            const calAbortRef = useRef(null);
 
             const [user, setUser] = useState(null);
             const [profiles, setProfiles] = useState([]);
-            const [isSaving, setIsSaving] = useState(false);
             const [saveInputName, setSaveInputName] = useState("");
-            
-            const [editingId, setEditingId] = useState(null);
-            const [editingValue, setEditingValue] = useState("");
-            const [draggedIndex, setDraggedIndex] = useState(null);
-            const [touchOverIndex, setTouchOverIndex] = useState(null);
 
             const isAdmin = useMemo(() => user && user.uid === ADMIN_UID, [user]);
             const isLoggedIn = useMemo(() => !!user, [user]);
+
+            const ELEMENT_STYLES = useMemo(() => ({
+                '金': { color: isDark ? 'text-slate-400' : 'text-slate-600', bg: 'bg-slate-400', bar: 'bg-slate-400' },
+                '木': { color: isDark ? 'text-emerald-500' : 'text-emerald-700', bg: 'bg-emerald-500', bar: 'bg-emerald-500' },
+                '水': { color: isDark ? 'text-blue-500' : 'text-blue-700', bg: 'bg-blue-500', bar: 'bg-blue-500' },
+                '火': { color: isDark ? 'text-red-500' : 'text-red-600', bg: 'bg-red-500', bar: 'bg-red-500' },
+                '土': { color: isDark ? 'text-[#a57c5a]' : 'text-[#8b4513]', bg: 'bg-[#a57c5a]', bar: 'bg-[#a57c5a]' },
+                'none': { color: isDark ? 'text-slate-400' : 'text-slate-950', bg: isDark ? 'bg-slate-800' : 'bg-slate-200' }
+            }), [isDark]);
+
+            // 姻緣桃花圖示組件：修正文字與圓圈置中對齊
+            const RomanceIcon = ({ level }) => {
+                if (!level || !isAdmin) return null;
+                return (
+                    <div className="absolute top-0 right-0 pointer-events-none flex items-center justify-center p-0.5 w-6 h-6">
+                        {level === 2 ? (
+                            <div className="w-4.5 h-4.5 sm:w-5 sm:h-5 rounded-full bg-pink-400/20 flex items-center justify-center">
+                                <span className="text-[8px] sm:text-[9px] font-black text-pink-500 leading-none block transform translate-y-[0.5px]">桃</span>
+                            </div>
+                        ) : (
+                            <span className="text-[8px] sm:text-[9px] font-black text-pink-500 leading-none">桃</span>
+                        )}
+                    </div>
+                );
+            };
+
+            const hourOptions = useMemo(() => {
+                const opts = [{ label: '吉時', val: -1 }];
+                for (let i = 0; i < 24; i++) {
+                    const branchIdx = Math.floor(((i + 1) % 24) / 2);
+                    opts.push({ label: `${i}時 (${BRANCHES[branchIdx]})`, val: i });
+                }
+                return opts;
+            }, []);
+
+            const fetchBazi = useCallback(async () => {
+                if (!gregYear || !month || !day) return;
+                if (baziAbortRef.current) baziAbortRef.current.abort();
+                baziAbortRef.current = new AbortController();
+                setIsLoading(true); setError(null);
+                try {
+                    const headers = { "Content-Type": "application/json" };
+                    if (user) { const token = await user.getIdToken(); headers["Authorization"] = `Bearer ${token}`; }
+                    const response = await fetch(WORKER_URL, {
+                        method: "POST",
+                        headers: headers,
+                        body: JSON.stringify({ type: 'bazi', gregYear, month, day, hour, minute, gender, isDst, calYear, calMonth }),
+                        signal: baziAbortRef.current.signal
+                    });
+                    const data = await response.json();
+                    if (data.error) throw new Error(data.error);
+                    setChartData(data);
+                    if (data.calendarData) setCalendarData(data.calendarData);
+                } catch (err) { if (err.name !== 'AbortError') setError("運算引擎忙線中...請稍候 1 min 再試"); }
+                finally { setIsLoading(false); }
+            }, [gregYear, month, day, hour, minute, gender, isDst, user, calYear, calMonth]);
+
+            const fetchCalendar = useCallback(async () => {
+                if (calAbortRef.current) calAbortRef.current.abort();
+                calAbortRef.current = new AbortController();
+                setIsCalLoading(true);
+                try {
+                    const headers = { "Content-Type": "application/json" };
+                    if (user) { const token = await user.getIdToken(); headers["Authorization"] = `Bearer ${token}`; }
+                    const response = await fetch(WORKER_URL, {
+                        method: "POST",
+                        headers: headers,
+                        body: JSON.stringify({ type: 'calendar', calYear, calMonth, gregYear, month, day }),
+                        signal: calAbortRef.current.signal
+                    });
+                    const data = await response.json();
+                    if (data.calendarData) setCalendarData(data.calendarData);
+                } catch (e) { if (e.name !== 'AbortError') console.error("Calendar Failed"); }
+                finally { setIsCalLoading(false); }
+            }, [calYear, calMonth, user, gregYear, month, day]);
+
+            useEffect(() => { fetchBazi(); }, [fetchBazi]);
+            useEffect(() => { fetchCalendar(); }, [fetchCalendar]);
 
             useEffect(() => {
                 if (!window.FirebaseSDK) return;
@@ -134,180 +199,13 @@
             useEffect(() => {
                 if (!user || !window.FirebaseSDK) { setProfiles([]); return; }
                 const { db, collection, onSnapshot, query, limit } = window.FirebaseSDK;
-                const q = isAdmin ? query(collection(db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles')) : query(collection(db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles'), limit(4));
-                const unsubscribe = onSnapshot(q, (snapshot) => {
+                const unsubscribe = onSnapshot(query(collection(db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles')), (snapshot) => {
                     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     data.sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
                     setProfiles(data);
-                }, (err) => console.error("Firestore Error:", err));
+                });
                 return () => unsubscribe();
-            }, [user, isAdmin]);
-
-            const ELEMENT_STYLES = useMemo(() => ({
-                '金': { color: isDark ? 'text-slate-400' : 'text-slate-600', bg: 'bg-slate-400', bar: 'bg-slate-400' },
-                '木': { color: isDark ? 'text-emerald-500' : 'text-emerald-700', bg: 'bg-emerald-500', bar: 'bg-emerald-500' },
-                '水': { color: isDark ? 'text-blue-500' : 'text-blue-700', bg: 'bg-blue-500', bar: 'bg-blue-500' },
-                '火': { color: isDark ? 'text-red-500' : 'text-red-600', bg: 'bg-red-500', bar: 'bg-red-500' },
-                '土': { color: isDark ? 'text-[#a57c5a]' : 'text-[#8b4513]', bg: 'bg-[#a57c5a]', bar: 'bg-[#a57c5a]' },
-                'none': { color: isDark ? 'text-slate-400' : 'text-slate-950', bg: isDark ? 'bg-slate-800' : 'bg-slate-200' }
-            }), [isDark]);
-
-            const hourOptions = useMemo(() => {
-                const opts = [{ label: '吉時', val: -1 }];
-                for (let i = 0; i < 24; i++) {
-                    const branchIdx = Math.floor(((i + 1) % 24) / 2);
-                    opts.push({ label: `${i}時 (${BRANCHES[branchIdx]})`, val: i });
-                }
-                return opts;
-            }, []);
-
-            const handleGoogleLogin = async () => {
-                const { auth, signInWithPopup, GoogleAuthProvider } = window.FirebaseSDK;
-                try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (err) { setError("登入失敗"); }
-            };
-
-            const handleLogout = () => { if(window.FirebaseSDK) window.FirebaseSDK.signOut(window.FirebaseSDK.auth); };
-
-            const handleClear = () => { 
-                setGregYear(""); setRocYear(""); setMonth(1); setDay(""); setHour(-1); setMinute(0); setIsDst(false); 
-                setChartData(null); setError(null); setIsLoading(false); 
-                requestVersion.current += 1;
-                if (debounceTimer.current) clearTimeout(debounceTimer.current);
-            };
-
-            const handleLoadCase = () => { handleGregChange(1977); setMonth(1); setDay(24); setHour(9); setMinute(0); setIsDst(false); };
-
-            const performReorder = async (fromIdx, toIdx) => {
-                if (fromIdx === toIdx || !window.FirebaseSDK) return;
-                const { db, doc, updateDoc } = window.FirebaseSDK;
-                const newProfiles = [...profiles];
-                const [movedItem] = newProfiles.splice(fromIdx, 1);
-                newProfiles.splice(toIdx, 0, movedItem);
-                const updates = newProfiles.map((p, i) => updateDoc(doc(db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', p.id), { order: i }));
-                await Promise.all(updates);
-            };
-
-            const handleSaveProfile = async () => {
-                if (!user || !window.FirebaseSDK) return;
-                if (!isAdmin && profiles.length >= 4) return;
-                if (!saveInputName.trim()) return;
-                setIsSaving(true);
-                const { db, doc, setDoc } = window.FirebaseSDK;
-                let newId = `profile_${Date.now()}`;
-                if (!isAdmin) {
-                    const existingIds = profiles.map(p => p.id);
-                    const slot = [1,2,3,4].find(n => !existingIds.includes(`profile_${n}`));
-                    if (slot) newId = `profile_${slot}`;
-                }
-                try {
-                    await setDoc(doc(db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', newId), {
-                        name: saveInputName.trim(), gregYear, month, day, hour, minute, gender, isDst, createdAt: new Date().toISOString(), order: profiles.length
-                    });
-                    setSaveInputName("");
-                } catch (err) { alert("儲存失敗"); }
-                finally { setIsSaving(false); }
-            };
-
-            const handleStartEdit = (p, e) => { e.stopPropagation(); setEditingId(p.id); setEditingValue(p.name); };
-            const handleCancelEdit = (e) => { if(e) e.stopPropagation(); setEditingId(null); setEditingValue(""); };
-            const handleSaveEdit = async (e) => {
-                if(e) e.stopPropagation();
-                if (!editingValue.trim() || !window.FirebaseSDK) return;
-                const { db, doc, updateDoc } = window.FirebaseSDK;
-                const tid = editingId;
-                setEditingId(null);
-                try { await updateDoc(doc(db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', tid), { name: editingValue.trim() }); } catch (err) {}
-            };
-
-            const handleDeleteProfile = async (id, e) => {
-                e.stopPropagation();
-                if (!window.FirebaseSDK) return;
-                const { db, doc, deleteDoc } = window.FirebaseSDK;
-                await deleteDoc(doc(db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', id));
-            };
-
-            const handleDragStart = (index) => setDraggedIndex(index);
-            const handleDragOver = (e) => e.preventDefault();
-            const handleDrop = (index) => { performReorder(draggedIndex, index); setDraggedIndex(null); };
-
-            const handleTouchStart = (index) => { setDraggedIndex(index); };
-            const handleTouchMove = (e) => {
-                const touch = e.touches[0];
-                const el = document.elementFromPoint(touch.clientX, touch.clientY);
-                const item = el?.closest('.profile-item');
-                if (item) {
-                    const index = parseInt(item.getAttribute('data-index'));
-                    if (!isNaN(index)) setTouchOverIndex(index);
-                }
-            };
-            const handleTouchEnd = () => {
-                if (draggedIndex !== null && touchOverIndex !== null) { performReorder(draggedIndex, touchOverIndex); }
-                setDraggedIndex(null); setTouchOverIndex(null);
-            };
-
-            const handleGregChange = (val) => {
-                const v = val === "" ? "" : parseInt(val);
-                setGregYear(v);
-                if (typeof v === 'number' && !isNaN(v)) setRocYear(v - 1911); else setRocYear("");
-            };
-
-            const handleRocChange = (val) => {
-                const v = val === "" ? "" : parseInt(val);
-                setRocYear(v);
-                if (typeof v === 'number' && !isNaN(v)) setGregYear(v + 1911); else setGregYear("");
-            };
-
-            const fetchBaziData = useCallback(async () => {
-                if (!gregYear || !month || !day) { setIsLoading(false); setError(null); return; }
-
-                if (debounceTimer.current) clearTimeout(debounceTimer.current);
-
-                debounceTimer.current = setTimeout(async () => {
-                    const currentVersion = ++requestVersion.current;
-                    if (abortControllerRef.current) abortControllerRef.current.abort();
-                    abortControllerRef.current = new AbortController();
-                    
-                    setIsLoading(true);
-                    setError(null); 
-
-                    try {
-                        const headers = { "Content-Type": "application/json" };
-                        if (user) { const token = await user.getIdToken(); headers["Authorization"] = `Bearer ${token}`; }
-                        const response = await fetch(WORKER_URL, {
-                            method: "POST",
-                            headers: headers,
-                            body: JSON.stringify({ gregYear, month, day, hour, minute, gender, isDst }),
-                            signal: abortControllerRef.current.signal
-                        });
-                        const data = await response.json();
-                        if (currentVersion !== requestVersion.current) return;
-                        if (data && data.pillars) { setChartData(data); setError(null); } 
-                        else { setError(data.error || "運算數據回傳格式不正確"); }
-                    } catch (err) { 
-                        if (currentVersion !== requestVersion.current) return;
-                        if (err.name !== 'AbortError') setError("運算引擎連線中..."); 
-                    } finally { 
-                        if (currentVersion === requestVersion.current) setIsLoading(false); 
-                    }
-                }, 300);
-            }, [gregYear, month, day, hour, minute, gender, isDst, user]);
-
-            useEffect(() => { fetchBaziData(); return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); if (abortControllerRef.current) abortControllerRef.current.abort(); }; }, [fetchBaziData]);
-
-            const CharacterWithElement = ({ char, element, color, isSmall = false, highlight = false }) => {
-                if (!char) return null;
-                const style = ELEMENT_STYLES[color || "none"] || ELEMENT_STYLES["none"];
-                const charSize = isSmall ? "text-lg" : "text-[clamp(1.5rem,7vw,3.2rem)]";
-                return (
-                    <div className="relative inline-flex items-center justify-center text-center">
-                        {highlight && <div className="absolute w-10 h-10 md:w-14 md:h-14 rounded-full animate-pulse bg-emerald-500/20 blur-[1px]"></div>}
-                        <div className={`relative flex items-baseline ${style.color} font-serif z-10 transition-colors duration-500`}>
-                            <span className={`${charSize} leading-none tracking-tight`}>{char}</span>
-                            {element && element !== "none" && <span className="text-[clamp(0.45rem,1.5vw,0.65rem)] ml-px opacity-80 font-sans font-bold leading-none">{element}</span>}
-                        </div>
-                    </div>
-                );
-            };
+            }, [user]);
 
             const StarLabel = ({ starInfo, isDayMaster = false, isVertical = false, extraSmall = false, isFortune = false }) => {
                 if (!starInfo) return null;
@@ -319,108 +217,87 @@
                 }, 0) : 0;
                 const isStrong = isFortune ? true : (threshold > 0 && !isDayMaster && freq >= threshold);
                 const style = ELEMENT_STYLES[color || "none"] || ELEMENT_STYLES["none"];
-                const baseStyles = "rounded border font-bold flex items-center justify-center transition-all duration-500 overflow-hidden text-center mx-auto";
+                const baseStyles = "rounded border font-bold flex items-center justify-center transition-all duration-300 overflow-hidden text-center mx-auto";
                 let colorStyles = (color === "none" || !color) ? (isDark ? "bg-slate-800 text-slate-400 border-slate-700" : "bg-white border-slate-300 text-slate-950") : (isDayMaster ? "bg-yellow-500 text-slate-950 border-yellow-600 shadow-md" : (isStrong ? `${style.bg} text-white border-transparent shadow-lg ring-1 ring-white/10` : (isDark ? "bg-slate-800 text-slate-200 border-slate-700 shadow-inner" : "bg-slate-100 text-slate-700 border-slate-200 shadow-sm")));
                 const paddingStyles = isVertical ? "px-0.5 py-1 sm:px-1.5 sm:py-2 min-h-[4.5rem]" : "px-1.5 py-0.5 sm:px-3 sm:py-1";
                 const fontStyles = isVertical ? `${extraSmall ? 'text-[9.5px]' : 'text-[11px]'} sm:text-sm leading-tight` : "text-[clamp(0.75rem,2.8vw,1.1rem)] leading-none";
                 return <div className={`${baseStyles} ${colorStyles} ${paddingStyles} ${fontStyles}`} style={isVertical ? { writingMode: 'vertical-rl' } : {}}>{name}</div>;
             };
 
-            const loadProfile = (p) => { if (editingId) return; handleGregChange(p.gregYear); setMonth(p.month); setDay(p.day); setHour(p.hour); setMinute(p.minute); setGender(p.gender); setIsDst(p.isDst || false); };
+            const CharacterWithElement = ({ char, element, color, isSmall = false }) => {
+                if (!char) return null;
+                const style = ELEMENT_STYLES[color || "none"] || ELEMENT_STYLES["none"];
+                const charSize = isSmall ? "text-lg" : "text-[clamp(1.5rem,7vw,3.2rem)]";
+                return (
+                    <div className="relative inline-flex items-center justify-center text-center font-serif transition-colors duration-500">
+                        <span className={`${charSize} leading-none tracking-tight ${style.color}`}>{char}</span>
+                        {element && element !== "none" && <span className="text-[clamp(0.45rem,1.5vw,0.65rem)] ml-px opacity-80 font-sans font-bold leading-none">{element}</span>}
+                    </div>
+                );
+            };
+
+            const handleLoadCase = () => { setGregYear(1977); setRocYear(66); setMonth(1); setDay(24); setHour(9); setMinute(0); setIsDst(false); };
+            const handleClear = () => { setGregYear(""); setRocYear(""); setMonth(1); setDay(""); setHour(-1); setMinute(0); setIsDst(false); setChartData(null); };
 
             return (
-                <div className={`flex-grow safe-top p-2 sm:p-4 md:p-8 font-sans transition-colors duration-300 ${isDark ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-900"}`}>
+                <div className={`flex-grow safe-top p-2 sm:p-4 md:p-8 font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
                     <div className="max-w-[1200px] mx-auto space-y-3 sm:space-y-6">
                         
-                        <div className="flex flex-col gap-3 border-b border-slate-800/50 pb-3">
+                        <div className="flex flex-col gap-3 border-b border-slate-800/50 pb-3 text-left">
                             <div className="flex justify-between items-center">
                                 <h1 className={`text-2xl sm:text-3xl font-black tracking-tighter italic uppercase ${isDark ? 'text-emerald-500' : 'text-slate-950'}`}>四柱八字</h1>
-                                
                                 <div className="flex items-center gap-2">
-                                    <div className="flex items-center">
-                                        {!isLoggedIn ? (
-                                            <button onClick={handleGoogleLogin} className="flex items-center px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-bold shadow-sm hover:bg-slate-50 transition-all"><GoogleIcon />Google 登入</button>
-                                        ) : (
-                                            <div className="flex items-center gap-2 pr-2 border-r border-slate-200 dark:border-slate-800 mr-1">
-                                                <div className="flex flex-col text-right leading-none">
-                                                    <span className="text-[12px] font-black opacity-40 uppercase">目前登入為</span>
-                                                    <span className={`text-[12px] font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{user.displayName || "User"} {isAdmin && "★"}</span>
-                                                </div>
-                                                <button onClick={handleLogout} title="登出" className="p-1.5 text-slate-400 hover:text-red-500 transition-all">
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <button onClick={() => setIsDark(!isDark)} className={`p-2 rounded-full border shadow-sm transition-all ${isDark ? 'bg-slate-900 border-slate-700 text-yellow-400' : 'bg-white border-slate-200 text-slate-600'}`}>{isDark ? "🌙" : "☀️"}</button>
+                                    {!isLoggedIn ? (
+                                        <button onClick={async () => await window.FirebaseSDK.signInWithPopup(window.FirebaseSDK.auth, new window.FirebaseSDK.GoogleAuthProvider())} className="flex items-center px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-bold shadow-sm hover:bg-slate-50 transition-all"><GoogleIcon />Google 登入</button>
+                                    ) : (
+                                        <div className="flex items-center gap-2 pr-2 border-r border-slate-200 dark:border-slate-800 mr-1 text-right leading-none">
+                                            <div className="flex flex-col"><span className="text-[12px] font-black opacity-40 uppercase">目前登入為</span><span className={`text-[12px] font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{user.displayName || "User"} {isAdmin && "★"}</span></div>
+                                            <button onClick={() => window.FirebaseSDK.signOut(window.FirebaseSDK.auth)} className="p-1.5 text-slate-400 hover:text-red-500 transition-all"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg></button>
+                                        </div>
+                                    )}
+                                    <button onClick={() => setIsDark(!isDark)} className={`p-2 rounded-full border shadow-sm transition-all ${isDark ? "bg-slate-900 border-slate-700 text-yellow-400" : "bg-white border-slate-200 text-slate-600"}`}>{isDark ? "🌙" : "☀️"}</button>
                                 </div>
                             </div>
-
+                            
+                            {/* 工具列與存檔區 */}
                             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                                 <div className="flex items-center gap-1.5">
                                     <button onClick={handleLoadCase} className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700 shadow-sm'}`}>載入案例</button>
                                     <button onClick={handleClear} className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700 shadow-sm'}`}>清除歸零</button>
                                 </div>
-                                
                                 {isLoggedIn && (
                                     <div className="flex items-center gap-2 flex-wrap">
-                                        <div className={`flex items-center p-0.5 rounded-lg border shadow-inner transition-all ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                                        <div className={`flex items-center p-0.5 rounded-lg border shadow-inner transition-all ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
                                             <input type="text" value={saveInputName} onChange={(e)=>setSaveInputName(e.target.value)} placeholder="名稱..." className={`bg-transparent border-0 text-[10px] sm:text-xs font-bold px-1.5 py-1 outline-none w-16 sm:w-28 placeholder:opacity-30 ${isDark ? 'text-slate-200' : 'text-slate-800'}`} />
-                                            <button onClick={handleSaveProfile} disabled={isSaving} className="bg-emerald-600 hover:bg-emerald-500 text-white text-[12px] px-2 py-1 rounded shadow-sm disabled:opacity-50 transition-all">Save</button>
+                                            <button onClick={async () => { const { db, doc, setDoc } = window.FirebaseSDK; await setDoc(doc(db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', `profile_${Date.now()}`), { name: saveInputName, gregYear, month, day, hour, minute, gender, isDst, order: profiles.length }); setSaveInputName(""); }} className="bg-emerald-600 hover:bg-emerald-500 text-white text-[12px] px-2 py-1 rounded shadow-sm transition-all">Save</button>
                                         </div>
                                         <div className="relative group text-left">
                                             <button className="px-3 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold shadow-md hover:bg-blue-500 transition-all">命盤切換 ({profiles.length})</button>
-                                            <div className="fixed inset-x-4 sm:absolute sm:inset-x-auto sm:right-0 sm:left-auto top-32 sm:top-full mt-2 sm:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] profile-dropdown-animate no-scrollbar overflow-y-auto max-h-[60vh]">
-                                                {profiles.length === 0 ? <div className="p-4 text-[10px] text-center opacity-50 italic">尚未儲存</div> : profiles.map((p, index) => (
-                                                    <div key={p.id} onClick={() => loadProfile(p)} draggable onDragStart={() => handleDragStart(index)} onDragOver={handleDragOver} onDrop={() => handleDrop(index)} onTouchStart={() => handleTouchStart(index)} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} data-index={index} className={`profile-item select-none flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer border-b last:border-0 border-slate-100 dark:border-slate-800 group/item text-left ${draggedIndex === index ? 'dragging' : ''} ${touchOverIndex === index ? 'touch-over' : ''}`}>
-                                                        {editingId === p.id ? (
-                                                            <div className="flex items-center flex-grow gap-2" onClick={(e)=>e.stopPropagation()}>
-                                                                <input autoFocus type="text" value={editingValue} onChange={(e)=>setEditingValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(e)} className={`text-xs font-bold px-1.5 py-1 rounded border outline-none w-full ${isDark ? "bg-slate-800 border-slate-600 text-slate-100" : "bg-white border-slate-300 text-slate-900"}`} />
-                                                                <button onClick={handleSaveEdit} className="text-emerald-500 p-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/></svg></button>
-                                                                <button onClick={handleCancelEdit} className="text-slate-400 p-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="flex items-center flex-grow truncate gap-2 text-left">
-                                                                <div className="p-1 text-slate-300 cursor-grab active:cursor-grabbing"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8h16M4 16h16"/></svg></div>
-                                                                <div className="flex flex-col truncate">
-                                                                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{p.name}</span>
-                                                                    <span className="text-[10px] text-slate-400">{p.gregYear}/{p.month}/{p.day}</span>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                        {!editingId && (
-                                                            <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
-                                                                <button onClick={(e) => handleStartEdit(p, e)} className="p-1 text-slate-300 hover:text-emerald-500 transition-all"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></button>
-                                                                <button onClick={(e) => handleDeleteProfile(p.id, e)} className="p-1 text-slate-300 hover:text-red-500 transition-all"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))}
+                                            <div className="fixed inset-x-4 sm:absolute sm:inset-x-auto sm:right-0 sm:left-auto top-32 sm:top-full mt-2 sm:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] no-scrollbar overflow-y-auto max-h-[60vh]">
+                                                {profiles.map((p) => (<div key={p.id} onClick={() => {setGregYear(p.gregYear); setRocYear(p.gregYear - 1911); setMonth(p.month); setDay(p.day); setHour(p.hour); setMinute(p.minute); setGender(p.gender); setIsDst(p.isDst);}} className="select-none flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer border-b last:border-0 border-slate-100 dark:border-slate-800 text-left"><div className="flex flex-col truncate"><span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{p.name}</span><span className="text-[10px] text-slate-400">{p.gregYear}/{p.month}/{p.day}</span></div><button onClick={async (e) => { e.stopPropagation(); await window.FirebaseSDK.deleteDoc(window.FirebaseSDK.doc(window.FirebaseSDK.db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', p.id)); }} className="p-1 text-slate-300 hover:text-red-500"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div>))}
                                             </div>
                                         </div>
                                     </div>
                                 )}
                             </div>
 
-                            <div className="grid grid-cols-3 sm:grid-cols-9 gap-1.5 sm:gap-2 items-end text-left">
-                                <div className="flex flex-col gap-1"><span className="text-[10px] font-bold opacity-40 uppercase">性別</span><select value={gender} onChange={(e)=>setGender(e.target.value)} className={`rounded px-1 text-xs border h-9 ${isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300'}`}><option value="male">男</option><option value="female">女</option></select></div>
-                                <div className="flex flex-col gap-1"><span className="text-[10px] font-bold opacity-40 uppercase">西元</span><input type="number" value={gregYear} onChange={(e)=>handleGregChange(e.target.value)} className={`rounded px-1 text-xs border h-9 ${isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300'}`} /></div>
-                                <div className="flex flex-col gap-1"><span className="text-[10px] font-bold opacity-40 uppercase">民國</span><input type="number" value={rocYear} onChange={(e)=>handleRocChange(e.target.value)} className={`rounded px-1 text-xs border h-9 ${isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300'}`} /></div>
-                                <div className="flex flex-col gap-1"><span className="text-[10px] font-bold opacity-40 uppercase">月份</span><select value={month} onChange={(e)=>setMonth(parseInt(e.target.value) || 1)} className={`rounded px-1 text-xs border h-9 ${isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300'}`}>{Array.from({length:12}, (_,i)=><option key={i+1} value={i+1}>{i+1}月</option>)}</select></div>
-                                <div className="flex flex-col gap-1"><span className="text-[10px] font-bold opacity-40 uppercase">日期</span><input type="number" value={day} onChange={(e)=>{const v = e.target.value === "" ? "" : Math.max(1, Math.min(31, parseInt(e.target.value))); setDay(v);}} className={`rounded px-1 text-xs border h-9 w-full ${isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300'}`} /></div>
-                                <div className="flex flex-col gap-1"><span className="text-[10px] font-bold opacity-40 uppercase">時辰</span><select value={hour} onChange={(e)=>setHour(parseInt(e.target.value))} className={`rounded px-1 text-[10px] sm:text-xs border h-9 ${isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300'}`}>{hourOptions.map((o,i) => <option key={i} value={o.val}>{o.label}</option>)}</select></div>
-                                <div className="flex flex-col gap-1"><span className="text-[10px] font-bold opacity-40 uppercase">分鐘</span><input type="number" value={minute} onChange={(e)=>{const v = e.target.value === "" ? 0 : Math.max(0, Math.min(59, parseInt(e.target.value))); setMinute(v);}} className={`rounded px-1 text-xs border h-9 w-full ${isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300'}`} /></div>
-                                <div className="flex items-center gap-1 h-9 col-span-2 sm:col-span-1"><input type="checkbox" id="dst" checked={isDst} onChange={(e)=>setIsDst(e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" /><label htmlFor="dst" className={`text-[11px] font-bold uppercase ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>夏令時間</label></div>
+                            <div className="grid grid-cols-3 sm:grid-cols-9 gap-1.5 sm:gap-2 items-end">
+                                <div className="flex flex-col gap-1 text-left"><span className="text-[10px] font-bold opacity-40 uppercase">性別</span><select value={gender} onChange={(e)=>setGender(e.target.value)} className={`rounded px-1 text-xs border h-9 appearance-none ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`}><option value="male">男</option><option value="female">女</option></select></div>
+                                <div className="flex flex-col gap-1 text-left"><span className="text-[10px] font-bold opacity-40 uppercase">西元</span><input type="number" value={gregYear} onChange={(e)=> {setGregYear(e.target.value); setRocYear(e.target.value-1911);}} className={`rounded px-1 text-xs border h-9 appearance-none ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`} /></div>
+                                <div className="flex flex-col gap-1 text-left"><span className="text-[10px] font-bold opacity-40 uppercase">民國</span><input type="number" value={rocYear} onChange={(e)=> {setRocYear(e.target.value); setGregYear(parseInt(e.target.value)+1911);}} className={`rounded px-1 text-xs border h-9 appearance-none ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`} /></div>
+                                <div className="flex flex-col gap-1 text-left"><span className="text-[10px] font-bold opacity-40 uppercase">月份</span><select value={month} onChange={(e)=>setMonth(parseInt(e.target.value) || 1)} className={`rounded px-1 text-xs border h-9 appearance-none ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`}>{Array.from({length:12}, (_,i)=><option key={i+1} value={i+1}>{i+1}月</option>)}</select></div>
+                                <div className="flex flex-col gap-1 text-left"><span className="text-[10px] font-bold uppercase">日期</span><input type="number" value={day} onChange={(e)=>setDay(e.target.value)} className={`rounded px-1 text-xs border h-9 appearance-none w-full ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`} /></div>
+                                <div className="flex flex-col gap-1 text-left"><span className="text-[10px] font-bold opacity-40 uppercase">時辰</span><select value={hour} onChange={(e)=>setHour(parseInt(e.target.value))} className={`rounded px-1 text-[10px] sm:text-xs border h-9 appearance-none ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`}>{hourOptions.map((o,i) => <option key={i} value={o.val}>{o.label}</option>)}</select></div>
+                                <div className="flex flex-col gap-1 text-left"><span className="text-[10px] font-bold opacity-40 uppercase">分鐘</span><input type="number" value={minute} onChange={(e)=>setMinute(e.target.value)} className={`rounded px-1 text-xs border h-9 appearance-none w-full ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`} /></div>
+                                <div className="flex items-center gap-1 h-9 col-span-2 sm:col-span-1 text-left"><input type="checkbox" id="dst" checked={isDst} onChange={(e)=>setIsDst(e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" /><label htmlFor="dst" className={`text-[11px] font-bold uppercase ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>夏令時間</label></div>
                             </div>
                         </div>
 
-                        {isLoading && <div className="h-1 loading-shimmer w-full rounded-full"></div>}
-                        {error && <div className="p-2 bg-red-500/10 border border-red-500 text-red-500 text-[10px] font-bold rounded-lg text-center leading-relaxed font-mono">{error}</div>}
+                        {error && <div className="p-3 bg-red-500/10 border border-red-500 text-red-500 text-xs font-bold rounded-lg mb-4">{error}</div>}
 
                         <div className={`rounded-xl border overflow-hidden shadow-xl transition-all duration-300 ${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'} ${isDark ? "bg-slate-900/40 border-slate-700" : "bg-white border-slate-200"}`}>
                             {['四柱', '主星', '天干', '地支', '藏干', '副星'].map((label, rIdx) => {
-                                const rowKeys = ['pillar', 'main', 'stem', 'branch', 'sub_char', 'sub_star'];
-                                const id = rowKeys[rIdx];
+                                const id = ['pillar', 'main', 'stem', 'branch', 'sub_char', 'sub_star'][rIdx];
                                 return (
                                     <div key={id} className={`grid grid-cols-[16%_21%_21%_21%_21%] border-b last:border-0 ${isDark ? "border-slate-700" : "border-slate-200"}`}>
                                         <div className={`flex items-center justify-center border-r font-bold text-[clamp(0.7rem,3vw,1rem)] uppercase text-center ${isDark ? "bg-slate-900/40 text-slate-500 border-slate-700" : "bg-slate-50/50 text-slate-400"}`}>{label}</div>
@@ -428,10 +305,10 @@
                                             <div key={pIdx} className={`relative flex flex-col items-center justify-center p-1.5 sm:p-4 border-r last:border-0 ${isDark ? "border-slate-700" : "border-slate-200"}`}>
                                                 {id === 'pillar' && <span className={`font-bold text-[10px] sm:text-sm ${p.label === '日柱' ? (isDark ? "text-yellow-500" : "text-yellow-600") : (isDark ? "text-slate-300" : "text-slate-600")}`}>{p.label}</span>}
                                                 {id === 'main' && (hour === -1 && pIdx === 3 ? <span className="opacity-20 text-[10px]">－</span> : <StarLabel starInfo={p.main} isDayMaster={p.label === '日柱'} />)}
-                                                {id === 'stem' && (hour === -1 && pIdx === 3 ? <span className="text-2xl font-serif text-emerald-500">吉</span> : <CharacterWithElement char={p.stem} element={p.stemElement} color={p.stemColor} highlight={chartData && chartData.yueLingChar === p.stem && pIdx !== 2} />)}
+                                                {id === 'stem' && (hour === -1 && pIdx === 3 ? <span className="text-2xl font-serif text-emerald-500">吉</span> : <CharacterWithElement char={p.stem} element={p.stemElement} color={p.stemColor} />)}
                                                 {id === 'branch' && (hour === -1 && pIdx === 3 ? <span className="text-2xl font-serif text-emerald-500">時</span> : <CharacterWithElement char={p.branch} element={p.branchElement} color={p.branchColor} />)}
-                                                {id === 'sub_char' && (hour === -1 && pIdx === 3 ? <span className="opacity-20 text-[10px]">－</span> : <div className="grid grid-cols-3 w-full gap-0 px-0.5">{p.sub?.map((s, sIdx) => <div key={sIdx} className="flex justify-center items-center h-8 text-center"><CharacterWithElement char={s.char} element={s.star?.element} color={s.star?.color} isSmall highlight={chartData && pIdx === 1 && s.char === chartData.yueLingChar} /></div>)}</div>)}
-                                                {id === 'sub_star' && (hour === -1 && pIdx === 3 ? <span className="opacity-20 text-[10px]">－</span> : <div className="grid grid-cols-3 w-full gap-0 items-start px-px">{p.sub?.map((s, sIdx) => <div key={sIdx} className="flex flex-col items-center flex-shrink-0 text-center"><span className={`text-[8px] font-bold mb-0.5 ${isDark ? "text-slate-500" : "text-slate-400"}`}>{s.type}</span>{s.star ? <StarLabel starInfo={s.star} isVertical extraSmall /> : <span className="opacity-10 text-[10px]">－</span>}</div>)}</div>)}
+                                                {id === 'sub_char' && (hour === -1 && pIdx === 3 ? <span className="opacity-20 text-[10px]">－</span> : <div className="grid grid-cols-3 w-full gap-0 px-0.5">{p.sub?.map((s, sIdx) => <div key={sIdx} className="flex justify-center items-center h-8 text-center"><CharacterWithElement char={s.char} element={s.star?.element} color={s.star?.color} isSmall /></div>)}</div>)}
+                                                {id === 'sub_star' && (hour === -1 && pIdx === 3 ? <span className="opacity-20 text-[10px]">－</span> : <div className="grid grid-cols-3 w-full gap-0 items-start px-px text-center">{p.sub?.map((s, sIdx) => (<div key={sIdx} className="flex flex-col items-center flex-shrink-0 text-center"><span className={`text-[8px] font-bold mb-0.5 ${isDark ? "text-slate-500" : "text-slate-400"}`}>{s.type}</span>{s.star ? <StarLabel starInfo={s.star} isVertical extraSmall /> : <span className="opacity-10 text-[10px]">－</span>}</div>))}</div>)}
                                             </div>
                                         )) : [1,2,3,4].map(i => <div key={i} className="h-12 border-r last:border-0 animate-pulse bg-slate-200/20"></div>)}
                                     </div>
@@ -439,53 +316,102 @@
                             })}
                         </div>
 
+                        {/* 十神標記區組件：恢復丟失代碼 */}
                         <div className="flex flex-wrap items-center gap-3 py-1 overflow-x-auto no-scrollbar">
                             <div className="flex items-center gap-2">
                                 <span className="text-[10px] sm:text-xs font-bold uppercase text-slate-500 whitespace-nowrap">十神標記:</span>
                                 <div className="flex gap-1.5">
                                     {[0, 2, 3, 4, 5, 6].map(n => (
-                                        <button key={n} onClick={()=>setThreshold(n)} className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg border text-[10px] sm:text-sm font-bold transition-all flex items-center justify-center shrink-0 ${threshold === n ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg' : isDark ? "bg-slate-800 border-slate-700 text-slate-400" : "bg-white border-slate-200 text-slate-500 shadow-sm"}`}>{n||'OFF'}</button>
+                                        <button key={n} onClick={()=>setThreshold(n)} className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg border text-[10px] sm:text-sm font-bold transition-all flex items-center justify-center shrink-0 ${threshold === n ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg' : isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500 shadow-sm'}`}>{n||'OFF'}</button>
                                     ))}
                                 </div>
                             </div>
                             {!isLoggedIn && <span className="text-[9px] font-bold text-slate-950 dark:text-slate-400 italic">登入解鎖更多功能</span>}
                         </div>
 
-                        <div className="space-y-4">
-                            <AnalysisBox title="六十甲子" content={chartData?.dayPillarAnalysis} isDark={isDark} />
-                        </div>
+                        {isAdmin && <AnalysisBox title="六十甲子" content={chartData?.dayPillarAnalysis} isDark={isDark} />}
 
                         <div className="divider-gradient my-2 opacity-30"></div>
 
-                        {chartData && chartData.timing && (<div className={`p-4 sm:p-6 rounded-2xl border ${isDark ? "bg-slate-900/60 border-slate-700" : "bg-white border-slate-200 shadow-sm"} text-left`}><div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div className="space-y-1"><p className="text-[12px] font-bold text-emerald-500 uppercase tracking-widest">出生節氣資訊</p><p className="text-xs sm:text-sm font-bold opacity-90">農曆：<span className="text-emerald-600 dark:text-emerald-400">{toTC(chartData.timing.lunarStr)}</span></p><p className={`text-[11px] sm:text-xs text-slate-500`}>{toTC(chartData.timing.prevNodeName)}後 {chartData.timing.prevD}天 | {toTC(chartData.timing.nextNodeName)}前 {chartData.timing.nextD}天</p></div><div className="space-y-1"><p className="text-[12px] font-bold text-blue-500 uppercase tracking-widest">起運資訊</p><p className="text-xs sm:text-sm font-bold">約為 <span className="text-blue-500">{chartData.timing.startDate}</span></p><p className="text-[11px] font-bold opacity-60 text-blue-600">出生後 {chartData.timing.startAge.y}歲 {chartData.timing.startAge.m || 0}個月 {chartData.timing.startAge.d || 0}天 起大運</p></div></div></div>)}
+                        {chartData && chartData.timing && (
+                            <div className={`p-4 sm:p-6 rounded-2xl border ${isDark ? "bg-slate-900/60 border-slate-700" : "bg-white border-slate-200 shadow-sm"} text-left`}>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <p className="text-[12px] font-bold text-emerald-500 uppercase tracking-widest">出生節氣資訊</p>
+                                        <p className="text-xs sm:text-sm font-bold opacity-90">農曆：<span className="text-emerald-600 dark:text-emerald-400">{toTC(chartData.timing.lunarStr)}</span></p>
+                                        <p className="text-[11px] sm:text-xs text-slate-500">
+                                            {toTC(chartData.timing.prevNodeName)}後 {chartData.timing.prevD}天 | {toTC(chartData.timing.nextNodeName)}前 {chartData.timing.nextD}天
+                                        </p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[12px] font-bold text-blue-500 uppercase tracking-widest">起運資訊</p>
+                                        <p className="text-xs sm:text-sm font-bold">約為 <span className="text-blue-500">{chartData.timing.startDate}</span></p>
+                                        <p className="text-[11px] font-bold opacity-60 text-blue-600">出生後 {chartData.timing.startAge?.y || 0}歲 起大運</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
-                        {chartData && chartData.fortunePillars && (<div className={`rounded-2xl border ${isDark ? "border-slate-700 shadow-2xl" : "border-slate-800/50 shadow-xl"} overflow-hidden overflow-x-auto no-scrollbar`}><table className="fortune-table"><thead className={isDark ? "bg-slate-900 border-b border-slate-700" : "bg-white"}><tr className="text-slate-400 font-bold uppercase tracking-widest text-[9px] sm:text-[10px]"><th className={`w-[11%] text-center ${isDark ? "bg-slate-900" : "bg-white"}`}>項目</th>{chartData.fortunePillars.map((p, i) => <th key={i} className={`border-l ${isDark ? "border-slate-700" : "border-slate-800/30"} text-center`}>{p.label}</th>)}</tr></thead><tbody className={isDark ? "bg-slate-900/20" : "bg-white"}><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>十神</td>{chartData.fortunePillars.map((p, i) => <td key={i} className={`px-px text-center border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}>{p.label === '童限' ? null : <StarLabel starInfo={p.tenGod} isFortune extraSmall /> }</td>)}</tr><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>運程</td>{chartData.fortunePillars.map((p, i) => (<td key={i} className={`text-center border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}>{p.stem ? (<div className="flex flex-col items-center justify-center text-center"><div className="flex gap-px items-center justify-center leading-none font-serif font-bold text-[11px] sm:text-lg"><span className={ELEMENT_STYLES[p.stemColor || "none"].color}>{p.stem}</span><span className={ELEMENT_STYLES[p.branchColor || "none"].color}>{p.branch}</span></div>{p.tenGod && <div className="text-[8px] sm:text-[10px] flex gap-1 mt-0.5 leading-none font-black opacity-60 uppercase text-center justify-center"><span className={ELEMENT_STYLES[p.tenGod.color || "none"].color}>{p.tenGod.element}</span></div>}</div>) : <span className="opacity-20 text-[10px]">－</span>}</td>))}</tr><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>西曆</td>{chartData.fortunePillars.map((p, i) => <td key={i} className={`text-slate-400 font-bold text-[9px] sm:text-xs text-center border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}>{p.startYear}</td>)}</tr><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center border-b-2 ${isDark ? "bg-slate-900/50 border-slate-700" : "bg-white border-slate-800/50"}`}>周歲</td>{chartData.fortunePillars.map((p, i) => <td key={i} className={`text-blue-400 font-bold text-[9px] sm:text-xs border-b-2 text-center border-l ${isDark ? "border-slate-800/10" : "border-slate-800/10"} ${isDark ? "border-slate-700" : "border-slate-800/50"}`}>{p.age}</td>)}</tr><tr><td className={`text-slate-700 font-bold text-[9px] sm:text-xs uppercase text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>流年</td>{chartData.fortunePillars.map((p, pIdx) => { const startOffset = 10 - p.flowYears.length; return (<td key={pIdx} className={`p-0 align-top border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}><div className="flex flex-col">{[...Array(10)].map((_, rowIndex) => { const dataIdx = rowIndex - startOffset; const fy = (dataIdx >= 0) ? p.flowYears[dataIdx] : null; if (!fy) return <div key={rowIndex} className="flow-year-row"></div>; return (<div key={rowIndex} className={`flow-year-row ${rowIndex === 4 ? (isDark ? 'border-b-2 border-slate-600/50' : 'border-b-2 border-slate-400/50') : 'border-b border-slate-800/10'} last:border-0 ${fy.year === CURRENT_REAL_YEAR ? 'highlight-year' : ''}`}><div className="flex items-center gap-px font-serif leading-none font-bold text-[10px] sm:text-[13px] text-center justify-center"><span className={ELEMENT_STYLES[fy.stemColor || "none"].color}>{fy.stem}</span><span className={isLoggedIn ? "" : (isDark ? 'text-slate-400' : 'text-slate-950')}>{fy.branch}</span></div></div>);})}</div></td>);})}</tr></tbody></table></div>)}
+                        {chartData && chartData.fortunePillars && (
+                            <React.Fragment>
+                                <div className={`rounded-2xl border ${isDark ? "border-slate-700 shadow-2xl" : "border-slate-800/50 shadow-xl"} overflow-hidden overflow-x-auto no-scrollbar`}><table className="fortune-table"><thead className={isDark ? "bg-slate-900 border-b border-slate-700" : "bg-white"}><tr className="text-slate-400 font-bold uppercase tracking-widest text-[9px] sm:text-[10px]"><th className={`w-[11%] text-center ${isDark ? "bg-slate-900" : "bg-white"}`}>項目</th>{chartData.fortunePillars.map((p, i) => <th key={i} className={`border-l ${isDark ? "border-slate-700" : "border-slate-800/30"} text-center`}>{p.label}</th>)}</tr></thead><tbody className={isDark ? "bg-slate-900/20" : "bg-white"}><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>十神</td>{chartData.fortunePillars.map((p, i) => <td key={i} className={`px-px text-center border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}>{p.label === '童限' ? null : <StarLabel starInfo={p.tenGod} isFortune extraSmall /> }</td>)}</tr><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>運程</td>{chartData.fortunePillars.map((p, i) => (<td key={i} className={`text-center border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}>{p.stem ? (<div className="flex flex-col items-center justify-center text-center"><div className="flex gap-px items-center justify-center leading-none font-serif font-bold text-[11px] sm:text-lg"><span className={ELEMENT_STYLES[p.stemColor || "none"].color}>{p.stem}</span><span className={ELEMENT_STYLES[p.branchColor || "none"].color}>{p.branch}</span></div></div>) : <span className="opacity-20 text-[10px]">－</span>}</td>))}</tr>
+                                <tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center border-l border-slate-800/10`}>西曆</td>{chartData.fortunePillars.map((p, i) => (<td key={i} className="text-slate-400 font-bold text-[9px] sm:text-xs text-center border-l border-slate-800/10">{p.startYear}</td>))}</tr>
+                                <tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center border-b-2 ${isDark ? "bg-slate-900/50 border-slate-700" : "bg-white border-slate-800/50"}`}>周歲</td>{chartData.fortunePillars.map((p, i) => <td key={i} className={`text-blue-400 font-bold text-[9px] sm:text-xs border-b-2 text-center border-l ${isDark ? "border-slate-800/50" : "border-slate-800/50"}`}>{p.age}</td>)}</tr><tr><td className={`text-slate-700 font-bold text-[9px] sm:text-xs uppercase text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>流年</td>{chartData.fortunePillars.map((p, pIdx) => { const startOffset = 10 - p.flowYears.length; return (<td key={pIdx} className={`p-0 align-top border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}><div className="flex flex-col">{[...Array(10)].map((_, rowIndex) => { const dataIdx = rowIndex - startOffset; const fy = (dataIdx >= 0) ? p.flowYears[dataIdx] : null; if (!fy) return <div key={rowIndex} className="flow-year-row"></div>; return (<div key={rowIndex} className={`flow-year-row ${rowIndex === 4 ? (isDark ? 'border-b-2 border-slate-600/50' : 'border-b-2 border-slate-400/50') : 'border-b border-slate-800/10'} last:border-0 ${fy.year === CURRENT_REAL_YEAR ? 'highlight-year' : ''}`}><div className="flex items-center gap-px font-serif leading-none font-bold text-[10px] sm:text-[13px] text-center justify-center"><span className={ELEMENT_STYLES[fy.stemColor || "none"].color}>{fy.stem}</span><span className={isLoggedIn ? "" : (isDark ? 'text-slate-400' : 'text-slate-950')}>{fy.branch}</span></div><RomanceIcon level={fy.romance} /></div>);})}</div></td>);})}</tr></tbody></table></div>
+                                {isAdmin && <div className="mt-4"><AnalysisBox title="流年點評" content={chartData?.flowYearAnalysis} isDark={isDark} /></div>}
+                            </React.Fragment>
+                        )}
 
-                        <div className="space-y-4">
-                            <AnalysisBox title="流年點評" content={chartData?.flowYearAnalysis} isDark={isDark} />
+                        <div className={`p-4 sm:p-6 rounded-2xl border transition-all duration-300 ${isDark ? 'bg-slate-900/40 border-slate-800 shadow-2xl' : 'bg-white border-slate-200 shadow-xl'}`}>
+                            <div className="flex flex-row items-center justify-between gap-2 mb-6 sm:mb-8 text-left">
+                                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                                    <div className="w-1.5 h-6 bg-blue-500 rounded-full"></div>
+                                    <h2 className="font-black text-base sm:text-xl tracking-widest uppercase">流月流日</h2>
+                                </div>
+                                <div className="flex items-center gap-2 sm:gap-3">
+                                    <div className="flex flex-col gap-0.5 sm:gap-1">
+                                        <span className="text-[7px] sm:text-[8px] font-bold opacity-40 uppercase">查詢西元</span>
+                                        <input type="number" value={calYear} onChange={(e)=> setCalYear(parseInt(e.target.value) || new Date().getFullYear())} className={`rounded px-1.5 py-1 text-[10px] sm:text-xs border h-8 sm:h-9 appearance-none w-16 sm:w-24 ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`} />
+                                    </div>
+                                    <div className="flex flex-col gap-0.5 sm:gap-1">
+                                        <span className="text-[7px] sm:text-[8px] font-bold opacity-40 uppercase">查詢月份</span>
+                                        <select value={calMonth} onChange={(e)=> setCalMonth(parseInt(e.target.value) || 1)} className={`rounded px-1.5 py-1 text-[10px] sm:text-xs border h-8 sm:h-9 appearance-none w-16 sm:w-24 ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`}>{Array.from({length:12}, (_,i)=><option key={i+1} value={i+1}>{i+1}月</option>)}</select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="mb-8 overflow-x-auto no-scrollbar"><table className="w-full border-collapse border border-slate-700/30"><thead><tr className={isDark ? "bg-slate-800/50" : "bg-slate-100/50"}><th className="p-2 border border-slate-700/30 text-xs font-bold w-20">月份</th>{Array.from({length:12}, (_,i)=><th key={i} className="p-2 border border-slate-700/30 text-xs font-bold">{i+1}</th>)}</tr></thead><tbody><tr><td className="p-2 border border-slate-700/30 text-xs font-bold text-center">流月</td>{calendarData?.flowMonths?.map((m, i) => (<td key={i} className="p-2 border border-slate-700/30 font-serif font-bold text-sm text-center relative"><span className={ELEMENT_STYLES[isLoggedIn ? m.stemColor : "none"].color}>{m.stem}</span><span className={isDark ? "text-slate-400" : "text-slate-600"}>{m.branch}</span><RomanceIcon level={m.romance} /></td>)) || Array.from({length:12}, (_,i)=><td key={i} className="p-2 border border-slate-700/30 opacity-20">...</td>)}</tr></tbody></table></div>
+                            {isCalLoading && <div className="h-1 loading-shimmer w-full rounded-full mb-4"></div>}
+                            <div className="grid grid-cols-7 gap-2">
+                                {['一','二','三','四','五','六','日'].map(w => (<div key={w} className="text-center text-[10px] font-black opacity-40 pb-2 border-b border-slate-700/20 mb-2">週{w}</div>))}
+                                {calendarData?.days ? (
+                                    <React.Fragment>
+                                        {Array.from({length: calendarData.days[0].weekday}).map((_, i) => (<div key={`empty-${i}`} className="h-16 opacity-0"></div>))}
+                                        {calendarData.days.map((d, idx) => (
+                                            <div key={idx} className={`p-2 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all relative ${d.day === new Date().getDate() && calMonth === (new Date().getMonth()+1) && calYear === new Date().getFullYear() ? 'ring-2 ring-blue-500 bg-blue-500/5 shadow-inner' : isDark ? 'bg-slate-950 border-slate-800 shadow-sm' : 'bg-white border-slate-200 shadow-sm'}`}>
+                                                <div className="text-[10px] font-black opacity-30">{d.day}</div>
+                                                <div className="flex items-center gap-0.5 font-serif font-bold text-[14px] leading-none text-center">
+                                                    <span className={ELEMENT_STYLES[isLoggedIn ? d.stemColor : "none"].color}>{d.stem}</span>
+                                                    <span className={isDark ? "text-slate-300" : "text-slate-700"}>{d.branch}</span>
+                                                </div>
+                                                <RomanceIcon level={d.romance} />
+                                            </div>
+                                        ))}
+                                    </React.Fragment>
+                                ) : <div className="col-span-full py-10 opacity-30 italic">正在載入數據...</div>}
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="mt-10 mb-6 pb-6 border-slate-200 dark:border-slate-800 text-center"><p className="text-[clamp(11.5px,2.8vw,16px)] leading-relaxed md:leading-loose opacity-70 font-medium max-w-[50rem] md:max-w-[85ch] mx-auto font-serif italic tracking-wide">“命理不是預言未來的水晶球，而是一份解碼你的「出廠設定」說明書。命盤揭示的是每個人獨一無二的原始劇本。學命理，是學會閱讀自己，用理解取代迷信。理解命的邏輯，就能在敬畏中找到自信，讓命運掌握在自己手裡。”</p></div>
+                        <div className="mt-10 mb-6 pb-6 border-slate-200 dark:border-slate-800 text-center"><p className="text-[clamp(11.5px,2.8vw,16px)] leading-relaxed md:leading-loose opacity-70 font-medium max-w-[50rem] md:max-w-[85ch] mx-auto font-serif italic tracking-wide">“命理不是預言未來的水晶球，而是一份解碼你的「出廠設定」說明書。命盤揭示的是每個人獨一無二的原始劇本。學命理，是學會閱讀自己，用理解取代迷信。理解命的邏輯，就能在敬畏中找到自信，讓命運掌握在自己手裡。”</p></div>
+                    </div>
 
                     <footer className={`py-8 sm:py-16 border-t mt-auto transition-colors duration-300 ${isDark ? 'bg-slate-950 border-slate-800 text-slate-400' : 'bg-white border-slate-200 text-slate-500'}`}>
                         <div className="max-w-[1200px] mx-auto px-4 sm:px-8 text-center sm:text-left">
                             <div className="flex flex-col md:flex-row justify-between items-center gap-6 text-left">
                                 <div className="flex flex-row items-center justify-between md:justify-start gap-4 sm:gap-10 w-full md:w-auto">
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] uppercase font-black tracking-widest opacity-60 leading-tight">Created by</span>
-                                        <span className="text-xs sm:text-sm font-bold tracking-tight">kasimchang</span>
-                                    </div>
+                                    <div className="flex flex-col"><span className="text-[10px] uppercase font-black tracking-widest opacity-60 leading-tight">Created by</span><span className="text-xs sm:text-sm font-bold tracking-tight">kasimchang</span></div>
                                     <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 hidden md:block"></div>
-                                    <a href="https://www.msf.org.tw/" target="_blank" className="group flex flex-row items-center gap-2">
-                                        <img src="https://upload.wikimedia.org/wikipedia/en/thumb/b/b9/M%C3%A9decins_Sans_Fronti%C3%A8res_%28logo%29.svg/500px-M%C3%A9decins_Sans_Fronti%C3%A8res_%28logo%29.svg.png" alt="MSF" className="h-7 sm:h-10 w-auto object-contain" onError={(e)=>e.target.style.display='none'} />
-                                        <span className="text-[9px] uppercase font-black text-red-500/80 leading-none whitespace-nowrap">捐款支持做好事</span>
-                                    </a>
+                                    <a href="https://www.msf.org.tw/" target="_blank" className="group flex flex-row items-center gap-2"><img src="https://upload.wikimedia.org/wikipedia/en/thumb/b/b9/M%C3%A9decins_Sans_Fronti%C3%A8res_%28logo%29.svg/500px-M%C3%A9decins_Sans_Fronti%C3%A8res_%28logo%29.svg.png" alt="MSF" className="h-7 sm:h-10 w-auto object-contain" onError={(e)=>e.target.style.display='none'} /><span className="text-[9px] uppercase font-black text-red-500/80 leading-none whitespace-nowrap">捐款支持做好事</span></a>
                                     <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 hidden md:block"></div>
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] uppercase font-black tracking-widest opacity-60 leading-tight">Copyright</span>
-                                        <span className="text-xs sm:text-sm font-bold tracking-tight italic whitespace-nowrap">© 2026 LuminousPath</span>
-                                    </div>
+                                    <div className="flex flex-col"><span className="text-[10px] uppercase font-black tracking-widest opacity-60 leading-tight">Copyright</span><span className="text-xs sm:text-sm font-bold tracking-tight italic whitespace-nowrap">© 2026 LuminousPath</span></div>
                                 </div>
                                 <div className="flex flex-col items-center md:items-end text-center md:text-right w-full md:w-auto mt-2 md:mt-0">
                                     <span className="text-[10px] uppercase font-black tracking-[0.3em] text-emerald-500 mb-1 leading-none">LuminousPath Pro</span>
