@@ -301,22 +301,21 @@
             useEffect(() => {
                 if (!window.FirebaseSDK) return;
                 const { auth, onAuthStateChanged, getRedirectResult, db, doc, setDoc } = window.FirebaseSDK;
-                
-                // 處理橫向跳轉登入後的結果
-                getRedirectResult(auth).catch((e) => console.error("Redirect Login Error", e));
+
+                // 處理 Redirect 登入的結果（忽略「無 pending」的正常狀況）
+                getRedirectResult(auth)
+                    .then(result => { if (result?.user) console.log('Redirect auth ok:', result.user.email); })
+                    .catch(e => { if (e?.code !== 'auth/no-current-user') console.error('Redirect auth error:', e?.code); });
 
                 const unsubscribe = onAuthStateChanged(auth, async (u) => { 
                     if (u && !u.isAnonymous) {
                         setUser(u);
-                        // 自動註冊索引，方便管理員透過 Email 搜尋
+                        // 自動寫入 Firestore user_registry，讓管理員可透過 Email 找到此用戶
                         try {
                             await setDoc(doc(db, 'user_registry', u.email.toLowerCase()), { 
-                                uid: u.uid, 
-                                email: u.email, 
-                                name: u.displayName,
-                                updatedAt: Date.now()
+                                uid: u.uid, email: u.email, name: u.displayName, updatedAt: Date.now()
                             }, { merge: true });
-                        } catch(e) { console.error("Reg Error", e); }
+                        } catch(e) { console.error('Reg Error:', e?.code); }
                     } else {
                         setUser(null);
                     }
@@ -399,9 +398,11 @@
 
             useEffect(() => { if (showAdminPanel && isAdmin) loadGrantedUsers(); }, [showAdminPanel, isAdmin, loadGrantedUsers]);
 
-            // --- Admin Panel: 透過 Email 查詢 (走 KV 索引，不依賴 Firestore) ---
+            // --- Admin Panel: Email 查詢（KV → Firestore 雙重 fallback）---
+            const DEFAULT_PERMS = { colors: true, flowBranchColor: true, romance: false, analysis: false, calendarColors: true };
             const handleFetchAdminPerms = useCallback(async () => {
                 if (!adminEmail.trim() || !user) return;
+                const email = adminEmail.trim().toLowerCase();
                 setAdminMsg('查詢中...');
                 setAdminFoundUser(null);
                 setAdminUid('');
@@ -410,16 +411,32 @@
                     const res = await fetch(WORKER_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                        body: JSON.stringify({ type: 'getPermissions', targetEmail: adminEmail.trim() })
+                        body: JSON.stringify({ type: 'getPermissions', targetEmail: email })
                     });
+
                     if (res.status === 404) {
-                        setAdminMsg('❌ 查無此 Email (對方需先完成首次授權才能建立索引)');
+                        // KV 無索引 → Fallback：從 Firestore user_registry 查找
+                        setAdminMsg('KV 無索引，查詢登入紀錄...');
+                        try {
+                            const { db, doc, getDoc } = window.FirebaseSDK;
+                            const snap = await getDoc(doc(db, 'user_registry', email));
+                            if (snap.exists()) {
+                                const d = snap.data();
+                                setAdminUid(d.uid);
+                                setAdminFoundUser({ uid: d.uid, email: d.email, name: d.name });
+                                setAdminPerms({ ...DEFAULT_PERMS });
+                                setAdminMsg('✅ 已找到用戶（套用預設值，儲存後建立索引）');
+                            } else {
+                                setAdminMsg('❌ 查無此 Email（對方需先到網站登入一次）');
+                            }
+                        } catch (fe) { setAdminMsg('❌ 查詢失敗'); }
                         return;
                     }
+
                     const data = await res.json();
                     if (data.error) throw new Error(data.error);
                     setAdminUid(data.uid);
-                    setAdminFoundUser(data.userInfo || { uid: data.uid, email: adminEmail.trim() });
+                    setAdminFoundUser(data.userInfo || { uid: data.uid, email: email });
                     setAdminPerms(data.perms);
                     setAdminMsg('✅ 已讀取');
                 } catch (e) { setAdminMsg('❌ 查詢失敗: ' + e.message); }
@@ -589,7 +606,21 @@
                                 <h1 className={`text-2xl sm:text-3xl font-black tracking-tighter italic uppercase ${isDark ? 'text-emerald-500' : 'text-slate-950'}`}>四柱八字</h1>
                                 <div className="flex items-center gap-2">
                                     {!isLoggedIn ? (
-                                        <button onClick={() => window.FirebaseSDK.signInWithRedirect(window.FirebaseSDK.auth, new window.FirebaseSDK.GoogleAuthProvider())} className="flex items-center px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-bold shadow-sm hover:bg-slate-50 transition-all"><GoogleIcon />Google 登入</button>
+                                        <button onClick={async () => {
+                                            const { auth, signInWithPopup, signInWithRedirect, GoogleAuthProvider } = window.FirebaseSDK;
+                                            const provider = new GoogleAuthProvider();
+                                            try {
+                                                // 優先 Popup（正常瀏覽器），失敗再退到 Redirect（LINE/FB WebView）
+                                                await signInWithPopup(auth, provider);
+                                            } catch (e) {
+                                                const fallback = ['auth/popup-blocked','auth/popup-closed-by-user','auth/cancelled-popup-request','auth/disallowed-useragent','auth/operation-not-supported-in-this-environment'];
+                                                if (fallback.includes(e?.code)) {
+                                                    signInWithRedirect(auth, provider);
+                                                } else {
+                                                    console.error('Login error:', e?.code);
+                                                }
+                                            }
+                                        }} className="flex items-center px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-bold shadow-sm hover:bg-slate-50 transition-all"><GoogleIcon />Google 登入</button>
                                     ) : (
                                         <div className="flex items-center gap-2 pr-2 border-r border-slate-200 dark:border-slate-800 mr-1 text-right leading-none">
                                             <div className="flex flex-col"><span className="text-[12px] font-black opacity-40 uppercase">目前登入為</span><span className={`text-[12px] font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{user.displayName || "User"} {isAdmin && "★"}</span></div>
