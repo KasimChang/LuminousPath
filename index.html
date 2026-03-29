@@ -172,6 +172,8 @@
             const [grantedUsers, setGrantedUsers] = useState([]);
             const [grantedUsersLoading, setGrantedUsersLoading] = useState(false);
             const [editingUid, setEditingUid] = useState(null);
+            const [adminSearchMode, setAdminSearchMode] = useState('email');  // 'email' | 'uid'
+            const [adminUidInput, setAdminUidInput] = useState('');
 
             const baziAbortRef = useRef(null);
             const calAbortRef = useRef(null);
@@ -181,6 +183,7 @@
             const [user, setUser] = useState(null);
             const [profiles, setProfiles] = useState([]);
             const [saveInputName, setSaveInputName] = useState("");
+            const [activeProfileName, setActiveProfileName] = useState(null); // 目前顯示的命盤名稱
 
             const isAdmin = useMemo(() => user && user.uid === ADMIN_UID, [user]);
             const isLoggedIn = useMemo(() => !!user, [user]);
@@ -334,6 +337,32 @@
                 return () => unsubscribe();
             }, [user]);
 
+            // --- 儲存命盤 ---
+            const handleSaveProfile = useCallback(async () => {
+                if (!user || !window.FirebaseSDK) return;
+                const { db, doc, setDoc } = window.FirebaseSDK;
+                const name = saveInputName.trim() || `命盤 ${profiles.length + 1}`;
+                try {
+                    await setDoc(
+                        doc(db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', `profile_${Date.now()}`),
+                        { name, gregYear, month, day, hour, minute, gender, isDst, order: profiles.length, createdAt: Date.now() }
+                    );
+                    setSaveInputName('');
+                    setActiveProfileName(name);
+                } catch (e) { console.error('Save profile failed:', e?.code, e?.message); alert('儲存失敗：' + (e?.message || e?.code || '請確認 Firestore 安全規則')); }
+            }, [user, saveInputName, gregYear, month, day, hour, minute, gender, isDst, profiles.length]);
+
+            // --- 刪除命盤 ---
+            const handleDeleteProfile = useCallback(async (e, profileId, profileName) => {
+                e.stopPropagation();
+                if (!user || !window.FirebaseSDK) return;
+                const { db, doc, deleteDoc } = window.FirebaseSDK;
+                try {
+                    await deleteDoc(doc(db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', profileId));
+                    if (activeProfileName === profileName) setActiveProfileName(null);
+                } catch (e) { console.error('Delete profile failed:', e?.code); }
+            }, [user, activeProfileName]);
+
             const StarLabel = ({ starInfo, isDayMaster = false, isVertical = false, extraSmall = false, isFortune = false }) => {
                 if (!starInfo) return null;
                 const { name, element, color } = starInfo;
@@ -442,7 +471,31 @@
                 } catch (e) { setAdminMsg('❌ 查詢失敗: ' + e.message); }
             }, [adminEmail, user]);
 
-            // --- Admin Panel: 儲存權限，同時傳 userInfo 給 Worker 建立 KV 索引 ---
+            // --- Admin Panel: UID 直接查詢（後備模式）---
+            const handleFetchByUid = useCallback(async () => {
+                const uid = adminUidInput.trim();
+                if (!uid || !user) return;
+                setAdminMsg('查詢中...');
+                setAdminFoundUser(null);
+                setAdminUid('');
+                try {
+                    const token = await user.getIdToken();
+                    const res = await fetch(WORKER_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ type: 'getPermissions', targetUid: uid })
+                    });
+                    const data = await res.json();
+                    if (data.error) throw new Error(data.error);
+                    setAdminUid(data.uid || uid);
+                    // userInfo 可能不完整（若從未登入過），補上 uid 作為識別
+                    setAdminFoundUser(data.userInfo?.email ? data.userInfo : { uid, email: '(未知 Email)', name: '(UID 查詢)' });
+                    setAdminPerms(data.perms);
+                    setAdminMsg('✅ 已讀取 (UID 模式)');
+                } catch (e) { setAdminMsg('❌ 查詢失敗: ' + e.message); }
+            }, [adminUidInput, user]);
+
+
             const handleSaveAdminPerms = useCallback(async () => {
                 if (!adminUid || !user) { setAdminMsg('❌ 請先搜尋用戶'); return; }
                 setAdminSaving(true); setAdminMsg('');
@@ -496,10 +549,21 @@
 
                                     {/* === 區域一：搜尋用戶並授權 === */}
                                     <div className={`rounded-xl border p-4 space-y-3 ${isDark ? 'border-slate-700 bg-slate-800/30' : 'border-slate-200 bg-slate-50'}`}>
-                                        <p className="text-[10px] font-black uppercase tracking-widest opacity-40">新增 / 搜尋現有授權</p>
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-[10px] font-black uppercase tracking-widest opacity-40">新增 / 搜尋現有授權</p>
+                                            <div className="flex gap-1">
+                                                {['email','uid'].map(m => (
+                                                    <button key={m} onClick={() => { setAdminSearchMode(m); setAdminMsg(''); setAdminFoundUser(null); }} className={`text-[9px] font-black px-2 py-0.5 rounded-md transition-all uppercase ${adminSearchMode === m ? 'bg-emerald-500 text-white' : isDark ? 'bg-slate-700 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>{m}</button>
+                                                ))}
+                                            </div>
+                                        </div>
                                         <div className="flex gap-2">
-                                            <input type="email" value={adminEmail} onChange={e => { setAdminEmail(e.target.value); setAdminMsg(''); }} onKeyDown={e => e.key === 'Enter' && handleFetchAdminPerms()} placeholder="輸入對象的 Gmail 帳號..." className={`flex-1 rounded-lg px-3 py-2 text-xs border outline-none focus:ring-1 focus:ring-emerald-500 ${isDark ? 'bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-600' : 'bg-white border-slate-200'}`} />
-                                            <button onClick={handleFetchAdminPerms} className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all whitespace-nowrap">搜尋</button>
+                                            {adminSearchMode === 'email' ? (
+                                                <input type="email" value={adminEmail} onChange={e => { setAdminEmail(e.target.value); setAdminMsg(''); }} onKeyDown={e => e.key === 'Enter' && handleFetchAdminPerms()} placeholder="輸入對象的 Gmail 帳號..." className={`flex-1 rounded-lg px-3 py-2 text-xs border outline-none focus:ring-1 focus:ring-emerald-500 ${isDark ? 'bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-600' : 'bg-white border-slate-200'}`} />
+                                            ) : (
+                                                <input type="text" value={adminUidInput} onChange={e => { setAdminUidInput(e.target.value); setAdminMsg(''); }} onKeyDown={e => e.key === 'Enter' && handleFetchByUid()} placeholder="直接貼上 UID..." className={`flex-1 rounded-lg px-3 py-2 text-xs border font-mono outline-none focus:ring-1 focus:ring-emerald-500 ${isDark ? 'bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-600' : 'bg-white border-slate-200'}`} />
+                                            )}
+                                            <button onClick={adminSearchMode === 'email' ? handleFetchAdminPerms : handleFetchByUid} className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all whitespace-nowrap">搜尋</button>
                                         </div>
 
                                         {adminMsg && <p className={`text-[11px] font-bold px-3 py-2 rounded-lg ${adminMsg.startsWith('✅') ? 'bg-emerald-500/10 text-emerald-600' : adminMsg.startsWith('⚠️') ? 'bg-yellow-500/10 text-yellow-600' : 'bg-red-500/10 text-red-500'}`}>{adminMsg}</p>}
@@ -642,17 +706,38 @@
                                 {isLoggedIn && (
                                     <div className="flex items-center gap-2 flex-wrap">
                                         <div className={`flex items-center p-0.5 rounded-lg border shadow-inner transition-all ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                                            <input type="text" value={saveInputName} onChange={(e) => setSaveInputName(e.target.value)} placeholder="名稱..." className={`bg-transparent border-0 text-[10px] sm:text-xs font-bold px-1.5 py-1 outline-none w-16 sm:w-28 placeholder:opacity-30 ${isDark ? 'text-slate-200' : 'text-slate-800'}`} />
-                                            <button onClick={async () => { const { db, doc, setDoc } = window.FirebaseSDK; await setDoc(doc(db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', `profile_${Date.now()}`), { name: saveInputName, gregYear, month, day, hour, minute, gender, isDst, order: profiles.length }); setSaveInputName(""); }} className="bg-emerald-600 hover:bg-emerald-500 text-white text-[12px] px-2 py-1 rounded shadow-sm transition-all">Save</button>
+                                            <input type="text" value={saveInputName} onChange={(e) => setSaveInputName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSaveProfile()} placeholder="名稱..." className={`bg-transparent border-0 text-[10px] sm:text-xs font-bold px-1.5 py-1 outline-none w-16 sm:w-28 placeholder:opacity-30 ${isDark ? 'text-slate-200' : 'text-slate-800'}`} />
+                                            <button onClick={handleSaveProfile} className="bg-emerald-600 hover:bg-emerald-500 text-white text-[12px] px-2 py-1 rounded shadow-sm transition-all">Save</button>
                                         </div>
+
+                                        {/* 當前命盤名稱資訊框 */}
+                                        {activeProfileName && (
+                                            <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold max-w-[120px] truncate ${isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
+                                                <span className="opacity-50 shrink-0 text-[9px] uppercase font-black">▶</span>
+                                                <span className="truncate">{activeProfileName}</span>
+                                            </div>
+                                        )}
+
                                         <div className="relative group text-left">
                                             <button className="px-3 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold shadow-md hover:bg-blue-500 transition-all">命盤切換 ({profiles.length})</button>
                                             <div className="fixed inset-x-4 sm:absolute sm:inset-x-auto sm:right-0 sm:left-auto top-32 sm:top-full mt-2 sm:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] no-scrollbar overflow-y-auto max-h-[60vh]">
-                                                {profiles.map((p) => (<div key={p.id} onClick={() => { setGregYear(p.gregYear); setRocYear(p.gregYear - 1911); setMonth(p.month); setDay(p.day); setHour(p.hour); setMinute(p.minute); setGender(p.gender); setIsDst(p.isDst); }} className="select-none flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer border-b last:border-0 border-slate-100 dark:border-slate-800 text-left"><div className="flex flex-col truncate"><span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{p.name}</span><span className="text-[10px] text-slate-400">{p.gregYear}/{p.month}/{p.day}</span></div><button onClick={async (e) => { e.stopPropagation(); await window.FirebaseSDK.deleteDoc(window.FirebaseSDK.doc(window.FirebaseSDK.db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', p.id)); }} className="p-1 text-slate-300 hover:text-red-500"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div>))}
+                                                {profiles.length === 0 && <p className="text-[11px] opacity-30 text-center py-4">尚未儲存任何命盤</p>}
+                                                {profiles.map((p) => (
+                                                    <div key={p.id} onClick={() => { setGregYear(p.gregYear); setRocYear(p.gregYear - 1911); setMonth(p.month); setDay(p.day); setHour(p.hour); setMinute(p.minute); setGender(p.gender); setIsDst(p.isDst); setActiveProfileName(p.name); }} className={`select-none flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer border-b last:border-0 border-slate-100 dark:border-slate-800 text-left ${activeProfileName === p.name ? (isDark ? 'bg-slate-800' : 'bg-blue-50') : ''}`}>
+                                                        <div className="flex flex-col truncate">
+                                                            <span className={`text-xs font-bold truncate ${activeProfileName === p.name ? 'text-blue-500' : 'text-slate-800 dark:text-slate-200'}`}>{p.name}</span>
+                                                            <span className="text-[10px] text-slate-400">{p.gregYear}/{p.month}/{p.day}</span>
+                                                        </div>
+                                                        <button onClick={(e) => handleDeleteProfile(e, p.id, p.name)} className="p-1 text-slate-300 hover:text-red-500 shrink-0">
+                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                        </button>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
                                     </div>
                                 )}
+
                             </div>
 
                             <div className="grid grid-cols-3 sm:grid-cols-9 gap-1.5 sm:gap-2 items-end">
