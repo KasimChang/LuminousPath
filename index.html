@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>四柱八字 - LuminousPath Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -11,8 +13,8 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, query, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot, query, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCf5q4CJehSCnml8w_sOC27igtNt637Th4",
@@ -28,28 +30,86 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        window.FirebaseSDK = { 
+        window.FirebaseSDK = {
             app, auth, db,
-            firebaseConfig, initializeApp, getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, 
-            getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, query, limit,
-            signInWithCustomToken, signInAnonymously 
+            firebaseConfig, initializeApp, getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut,
+            getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot, query, limit,
+            signInWithCustomToken, signInAnonymously, getRedirectResult, signInWithRedirect
         };
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&family=Noto+Sans+TC:wght@300;400;700;900&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; overflow-x: hidden; }
-        .font-serif { font-family: 'Noto Serif TC', serif; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .fortune-table { table-layout: fixed; width: 100%; border-collapse: collapse; }
-        .fortune-table td, .fortune-table th { border: 1px solid rgba(71, 85, 105, 0.4); padding: 4px 0px; vertical-align: middle; text-align: center; }
-        .flow-year-row { height: 38px; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: all 0.2s; position: relative; }
-        .highlight-year { background: rgba(234, 179, 8, 0.15) !important; box-shadow: inset 0 0 0 1px #eab308; border-radius: 2px; }
-        .safe-top { padding-top: env(safe-area-inset-top); }
-        .loading-shimmer { background: linear-gradient(90deg, transparent 25%, rgba(16, 185, 129, 0.1) 50%, transparent 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
-        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .font-serif {
+            font-family: 'Noto Serif TC', serif;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .fortune-table {
+            table-layout: fixed;
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .fortune-table td,
+        .fortune-table th {
+            border: 1px solid rgba(71, 85, 105, 0.4);
+            padding: 4px 0px;
+            vertical-align: middle;
+            text-align: center;
+        }
+
+        .flow-year-row {
+            height: 38px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .highlight-year {
+            background: rgba(234, 179, 8, 0.15) !important;
+            box-shadow: inset 0 0 0 1px #eab308;
+            border-radius: 2px;
+        }
+
+        .safe-top {
+            padding-top: env(safe-area-inset-top);
+        }
+
+        .loading-shimmer {
+            background: linear-gradient(90deg, transparent 25%, rgba(16, 185, 129, 0.1) 50%, transparent 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
     </style>
 </head>
+
 <body class="flex flex-col min-h-screen transition-colors duration-300 text-center">
     <div id="root" class="flex-grow flex flex-col text-center"></div>
 
@@ -80,7 +140,7 @@
 
         const App = () => {
             const CURRENT_REAL_YEAR = new Date().getFullYear();
-            const [isDark, setIsDark] = useState(false); 
+            const [isDark, setIsDark] = useState(false);
             const [gender, setGender] = useState('male');
             const [threshold, setThreshold] = useState(0);
             const [isDst, setIsDst] = useState(false);
@@ -89,7 +149,7 @@
             const [rocYear, setRocYear] = useState(115);
             const [month, setMonth] = useState(2);
             const [day, setDay] = useState(4);
-            const [hour, setHour] = useState(4); 
+            const [hour, setHour] = useState(4);
             const [minute, setMinute] = useState(10);
 
             const [calYear, setCalYear] = useState(new Date().getFullYear());
@@ -100,9 +160,23 @@
             const [chartData, setChartData] = useState(null);
             const [isLoading, setIsLoading] = useState(false);
             const [error, setError] = useState(null);
-            
+            const [perms, setPerms] = useState({});  // 預設空物件，避免 ?. 存取 null 造成著色/桃花全掛
+
+            const [showAdminPanel, setShowAdminPanel] = useState(false);
+            const [adminEmail, setAdminEmail] = useState('');
+            const [adminUid, setAdminUid] = useState('');
+            const [adminPerms, setAdminPerms] = useState({ colors: true, flowBranchColor: true, romance: false, analysis: false, calendarColors: true });
+            const [adminMsg, setAdminMsg] = useState('');
+            const [adminSaving, setAdminSaving] = useState(false);
+            const [adminFoundUser, setAdminFoundUser] = useState(null);
+            const [grantedUsers, setGrantedUsers] = useState([]);
+            const [grantedUsersLoading, setGrantedUsersLoading] = useState(false);
+            const [editingUid, setEditingUid] = useState(null);
+
             const baziAbortRef = useRef(null);
             const calAbortRef = useRef(null);
+            const baziDebounceRef = useRef(null);   // 防止快速輸入觸發大量請求
+            const calDebounceRef = useRef(null);
 
             const [user, setUser] = useState(null);
             const [profiles, setProfiles] = useState([]);
@@ -121,11 +195,11 @@
             }), [isDark]);
 
             const RomanceIcon = ({ level, isCompact = false }) => {
-                if (!level || !isAdmin) return null;
-                
+                if (!level || !perms?.romance) return null;
+
                 const isHarmony = level > 0;
                 const isClash = level < 0;
-                
+
                 let textColor = "";
                 let bgColor = "";
 
@@ -141,7 +215,7 @@
                         bgColor = "transparent";
                     }
                 }
-                
+
                 const containerSize = isCompact ? "w-3 h-3 sm:w-5 sm:h-5" : "w-3.5 h-3.5 sm:w-6 sm:h-6";
                 const dotSize = isCompact ? "w-2.5 h-2.5 sm:w-4.5 sm:h-4.5" : "w-3 h-3 sm:w-5 sm:h-5";
                 const textSize = isCompact ? "text-[6px] sm:text-[8px]" : "text-[7px] sm:text-[9px]";
@@ -170,45 +244,55 @@
                 return opts;
             }, []);
 
-            const fetchBazi = useCallback(async () => {
+            const fetchBazi = useCallback(() => {
                 if (!gregYear || !month || !day) return;
-                if (baziAbortRef.current) baziAbortRef.current.abort();
-                baziAbortRef.current = new AbortController();
-                setIsLoading(true); setError(null);
-                try {
-                    const headers = { "Content-Type": "application/json" };
-                    if (user) { const token = await user.getIdToken(); headers["Authorization"] = `Bearer ${token}`; }
-                    const response = await fetch(WORKER_URL, {
-                        method: "POST",
-                        headers: headers,
-                        body: JSON.stringify({ type: 'bazi', gregYear, month, day, hour, minute, gender, isDst, calYear, calMonth }),
-                        signal: baziAbortRef.current.signal
-                    });
-                    const data = await response.json();
-                    if (data.error) throw new Error(data.error);
-                    setChartData(data);
-                    if (data.calendarData) setCalendarData(data.calendarData);
-                } catch (err) { if (err.name !== 'AbortError') setError("運算引擎忙線中..請稍候 1min 再試"); }
-                finally { setIsLoading(false); }
+                // Debounce 500ms：避免連續改變輸入值時發出大量請求
+                if (baziDebounceRef.current) clearTimeout(baziDebounceRef.current);
+                baziDebounceRef.current = setTimeout(async () => {
+                    if (baziAbortRef.current) baziAbortRef.current.abort();
+                    baziAbortRef.current = new AbortController();
+                    setIsLoading(true); setError(null);
+                    try {
+                        const headers = { "Content-Type": "application/json" };
+                        if (user) { const token = await user.getIdToken(); headers["Authorization"] = `Bearer ${token}`; }
+                        const response = await fetch(WORKER_URL, {
+                            method: "POST",
+                            headers: headers,
+                            body: JSON.stringify({ type: 'bazi', gregYear, month, day, hour, minute, gender, isDst, calYear, calMonth }),
+                            signal: baziAbortRef.current.signal
+                        });
+                        const data = await response.json();
+                        if (data.error) throw new Error(data.error);
+                        setChartData(data);
+                        if (data.perms) setPerms(data.perms);  // 從 Worker 取得最新權限
+                        if (data.calendarData) setCalendarData(data.calendarData);
+                    } catch (err) { if (err.name !== 'AbortError') setError("運算引擎忙線中，請稍候再試"); }
+                    finally { setIsLoading(false); }
+                }, 500);
             }, [gregYear, month, day, hour, minute, gender, isDst, user, calYear, calMonth]);
 
-            const fetchCalendar = useCallback(async () => {
-                if (calAbortRef.current) calAbortRef.current.abort();
-                calAbortRef.current = new AbortController();
-                setIsCalLoading(true);
-                try {
-                    const headers = { "Content-Type": "application/json" };
-                    if (user) { const token = await user.getIdToken(); headers["Authorization"] = `Bearer ${token}`; }
-                    const response = await fetch(WORKER_URL, {
-                        method: "POST",
-                        headers: headers,
-                        body: JSON.stringify({ type: 'calendar', calYear, calMonth, gregYear, month, day }),
-                        signal: calAbortRef.current.signal
-                    });
-                    const data = await response.json();
-                    if (data.calendarData) setCalendarData(data.calendarData);
-                } catch (e) { if (e.name !== 'AbortError') console.error("Calendar Failed"); }
-                finally { setIsCalLoading(false); }
+            const fetchCalendar = useCallback(() => {
+                // Debounce 400ms：萬年曆查詢也要防多打
+                if (calDebounceRef.current) clearTimeout(calDebounceRef.current);
+                calDebounceRef.current = setTimeout(async () => {
+                    if (calAbortRef.current) calAbortRef.current.abort();
+                    calAbortRef.current = new AbortController();
+                    setIsCalLoading(true);
+                    try {
+                        const headers = { "Content-Type": "application/json" };
+                        if (user) { const token = await user.getIdToken(); headers["Authorization"] = `Bearer ${token}`; }
+                        const response = await fetch(WORKER_URL, {
+                            method: "POST",
+                            headers: headers,
+                            body: JSON.stringify({ type: 'calendar', calYear, calMonth, gregYear, month, day }),
+                            signal: calAbortRef.current.signal
+                        });
+                        const data = await response.json();
+                        if (data.calendarData) setCalendarData(data.calendarData);
+                        if (data.perms) setPerms(data.perms);
+                    } catch (e) { if (e.name !== 'AbortError') console.error("Calendar Failed"); }
+                    finally { setIsCalLoading(false); }
+                }, 400);
             }, [calYear, calMonth, user, gregYear, month, day]);
 
             useEffect(() => { fetchBazi(); }, [fetchBazi]);
@@ -216,8 +300,27 @@
 
             useEffect(() => {
                 if (!window.FirebaseSDK) return;
-                const { auth, onAuthStateChanged } = window.FirebaseSDK;
-                const unsubscribe = onAuthStateChanged(auth, (u) => { if (u && !u.isAnonymous) setUser(u); else setUser(null); });
+                const { auth, onAuthStateChanged, getRedirectResult, db, doc, setDoc } = window.FirebaseSDK;
+                
+                // 處理橫向跳轉登入後的結果
+                getRedirectResult(auth).catch((e) => console.error("Redirect Login Error", e));
+
+                const unsubscribe = onAuthStateChanged(auth, async (u) => { 
+                    if (u && !u.isAnonymous) {
+                        setUser(u);
+                        // 自動註冊索引，方便管理員透過 Email 搜尋
+                        try {
+                            await setDoc(doc(db, 'user_registry', u.email.toLowerCase()), { 
+                                uid: u.uid, 
+                                email: u.email, 
+                                name: u.displayName,
+                                updatedAt: Date.now()
+                            }, { merge: true });
+                        } catch(e) { console.error("Reg Error", e); }
+                    } else {
+                        setUser(null);
+                    }
+                });
                 return () => unsubscribe();
             }, []);
 
@@ -249,10 +352,22 @@
                 return <div className={`${baseStyles} ${colorStyles} ${paddingStyles} ${fontStyles}`} style={isVertical ? { writingMode: 'vertical-rl' } : {}}>{name}</div>;
             };
 
-            const CharacterWithElement = ({ char, element, color, isSmall = false }) => {
+            const CharacterWithElement = ({ char, element, color, isSmall = false, isYueling = false }) => {
                 if (!char) return null;
                 const style = ELEMENT_STYLES[color || "none"] || ELEMENT_STYLES["none"];
                 const charSize = isSmall ? "text-lg" : "text-[clamp(1.5rem,7vw,3.2rem)]";
+
+                if (isYueling) {
+                    return (
+                        <div className="relative inline-flex items-center justify-center text-center font-serif transition-all duration-500">
+                             <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shadow-sm ${style.bg} text-white`}>
+                                <span className={`${charSize} leading-none`}>{char}</span>
+                             </div>
+                             {element && element !== "none" && <span className="text-[clamp(0.45rem,1.5vw,0.65rem)] ml-px opacity-80 font-sans font-bold leading-none">{element}</span>}
+                        </div>
+                    );
+                }
+
                 return (
                     <div className="relative inline-flex items-center justify-center text-center font-serif transition-colors duration-500">
                         <span className={`${charSize} leading-none tracking-tight ${style.color}`}>{char}</span>
@@ -264,26 +379,230 @@
             const handleLoadCase = () => { setGregYear(1977); setRocYear(66); setMonth(1); setDay(24); setHour(9); setMinute(0); setIsDst(false); };
             const handleClear = () => { setGregYear(""); setRocYear(""); setMonth(1); setDay(""); setHour(-1); setMinute(0); setIsDst(false); setChartData(null); };
 
+
+            // --- Admin Panel: 載入已授權用戶列表 ---
+            const loadGrantedUsers = useCallback(async () => {
+                if (!user) return;
+                setGrantedUsersLoading(true);
+                try {
+                    const token = await user.getIdToken();
+                    const res = await fetch(WORKER_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ type: 'listPermissions' })
+                    });
+                    const data = await res.json();
+                    setGrantedUsers(data.users || []);
+                } catch (e) { console.error('loadGrantedUsers failed', e); }
+                finally { setGrantedUsersLoading(false); }
+            }, [user]);
+
+            useEffect(() => { if (showAdminPanel && isAdmin) loadGrantedUsers(); }, [showAdminPanel, isAdmin, loadGrantedUsers]);
+
+            // --- Admin Panel: 透過 Email 查詢 (走 KV 索引，不依賴 Firestore) ---
+            const handleFetchAdminPerms = useCallback(async () => {
+                if (!adminEmail.trim() || !user) return;
+                setAdminMsg('查詢中...');
+                setAdminFoundUser(null);
+                setAdminUid('');
+                try {
+                    const token = await user.getIdToken();
+                    const res = await fetch(WORKER_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ type: 'getPermissions', targetEmail: adminEmail.trim() })
+                    });
+                    if (res.status === 404) {
+                        setAdminMsg('❌ 查無此 Email (對方需先完成首次授權才能建立索引)');
+                        return;
+                    }
+                    const data = await res.json();
+                    if (data.error) throw new Error(data.error);
+                    setAdminUid(data.uid);
+                    setAdminFoundUser(data.userInfo || { uid: data.uid, email: adminEmail.trim() });
+                    setAdminPerms(data.perms);
+                    setAdminMsg('✅ 已讀取');
+                } catch (e) { setAdminMsg('❌ 查詢失敗: ' + e.message); }
+            }, [adminEmail, user]);
+
+            // --- Admin Panel: 儲存權限，同時傳 userInfo 給 Worker 建立 KV 索引 ---
+            const handleSaveAdminPerms = useCallback(async () => {
+                if (!adminUid || !user) { setAdminMsg('❌ 請先搜尋用戶'); return; }
+                setAdminSaving(true); setAdminMsg('');
+                try {
+                    const token = await user.getIdToken();
+                    const res = await fetch(WORKER_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ type: 'setPermissions', targetUid: adminUid, permissions: adminPerms, userInfo: adminFoundUser })
+                    });
+                    const data = await res.json();
+                    if (data.ok) { setAdminMsg('✅ 已成功儲存'); loadGrantedUsers(); }
+                    else setAdminMsg(`❌ 錯誤: ${data.error}`);
+                } catch (e) { setAdminMsg('❌ 儲存失敗'); }
+                finally { setAdminSaving(false); }
+            }, [adminUid, adminPerms, adminFoundUser, user, loadGrantedUsers]);
+
+            // --- Admin Panel: 列表內行 Toggle（樂觀更新 + 立即儲存）---
+            const handleInlineToggle = useCallback(async (targetUser, permKey, newVal) => {
+                const newPerms = { ...targetUser.perms, [permKey]: newVal };
+                const info = { uid: targetUser.uid, email: targetUser.email, name: targetUser.name };
+                setGrantedUsers(prev => prev.map(u => u.uid === targetUser.uid ? { ...u, perms: newPerms } : u));
+                try {
+                    const token = await user.getIdToken();
+                    await fetch(WORKER_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ type: 'setPermissions', targetUid: targetUser.uid, permissions: newPerms, userInfo: info })
+                    });
+                } catch (e) { console.error('inline save failed', e); }
+            }, [user]);
+
+
+
             return (
                 <div className={`flex-grow safe-top p-2 sm:p-4 md:p-8 font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+
+                    {/* ===== Admin Panel Modal ===== */}
+                    {showAdminPanel && isAdmin && (
+                        <div className="fixed inset-0 z-[200] flex items-start justify-center p-3 sm:p-6 overflow-y-auto" onClick={() => setShowAdminPanel(false)}>
+                            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+                            <div className={`relative z-10 w-full max-w-xl rounded-2xl border shadow-2xl my-6 ${isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-200 text-slate-900'}`} onClick={e => e.stopPropagation()}>
+
+                                {/* Header */}
+                                <div className={`flex items-center justify-between px-5 pt-4 pb-3 border-b ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
+                                    <div><p className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Admin Panel</p><h3 className="text-base font-black tracking-tight">用戶權限管理</h3></div>
+                                    <button onClick={() => setShowAdminPanel(false)} className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-all">✕</button>
+                                </div>
+
+                                <div className="p-4 space-y-4">
+
+                                    {/* === 區域一：搜尋用戶並授權 === */}
+                                    <div className={`rounded-xl border p-4 space-y-3 ${isDark ? 'border-slate-700 bg-slate-800/30' : 'border-slate-200 bg-slate-50'}`}>
+                                        <p className="text-[10px] font-black uppercase tracking-widest opacity-40">新增 / 搜尋現有授權</p>
+                                        <div className="flex gap-2">
+                                            <input type="email" value={adminEmail} onChange={e => { setAdminEmail(e.target.value); setAdminMsg(''); }} onKeyDown={e => e.key === 'Enter' && handleFetchAdminPerms()} placeholder="輸入對象的 Gmail 帳號..." className={`flex-1 rounded-lg px-3 py-2 text-xs border outline-none focus:ring-1 focus:ring-emerald-500 ${isDark ? 'bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-600' : 'bg-white border-slate-200'}`} />
+                                            <button onClick={handleFetchAdminPerms} className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all whitespace-nowrap">搜尋</button>
+                                        </div>
+
+                                        {adminMsg && <p className={`text-[11px] font-bold px-3 py-2 rounded-lg ${adminMsg.startsWith('✅') ? 'bg-emerald-500/10 text-emerald-600' : adminMsg.startsWith('⚠️') ? 'bg-yellow-500/10 text-yellow-600' : 'bg-red-500/10 text-red-500'}`}>{adminMsg}</p>}
+
+                                        {adminFoundUser && (
+                                            <div className={`rounded-lg border p-3 space-y-3 ${isDark ? 'border-slate-600 bg-slate-800' : 'border-slate-200 bg-white'}`}>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white text-sm font-black shrink-0">
+                                                        {(adminFoundUser.name || adminFoundUser.email || '?')[0].toUpperCase()}
+                                                    </div>
+                                                    <div className="flex flex-col leading-tight">
+                                                        <span className="text-xs font-bold">{adminFoundUser.name || '未知姓名'}</span>
+                                                        <span className="text-[10px] opacity-40">{adminFoundUser.email}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-1 gap-2">
+                                                    {[['colors','四柱/大運著色'],['flowBranchColor','流年地支著色'],['calendarColors','萬年曆著色'],['romance','桃花感應標記'],['analysis','命盤文字分析']].map(([key, label]) => (
+                                                        <label key={key} className="flex items-center justify-between cursor-pointer">
+                                                            <span className="text-xs font-medium">{label}</span>
+                                                            <div className="relative" onClick={() => setAdminPerms(p => ({ ...p, [key]: !p[key] }))}>
+                                                                <div className={`w-9 h-5 rounded-full transition-colors ${adminPerms[key] ? 'bg-emerald-500' : isDark ? 'bg-slate-700' : 'bg-slate-300'}`}>
+                                                                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${adminPerms[key] ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                                                                </div>
+                                                            </div>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                                <button onClick={handleSaveAdminPerms} disabled={adminSaving} className="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-black transition-all">
+                                                    {adminSaving ? '儲存中...' : '✓ 儲存權限'}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* === 區域二：已授權用戶列表 === */}
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between px-1">
+                                            <p className="text-[10px] font-black uppercase tracking-widest opacity-40">已特別授權 ({grantedUsers.length} 人)</p>
+                                            <button onClick={loadGrantedUsers} disabled={grantedUsersLoading} className="text-[10px] font-bold text-emerald-500 hover:text-emerald-400 transition-all disabled:opacity-40">{grantedUsersLoading ? '載入中...' : '↻ 重新整理'}</button>
+                                        </div>
+
+                                        {grantedUsers.length === 0 && !grantedUsersLoading && (
+                                            <p className="text-[11px] opacity-25 text-center py-6 italic">尚無任何已授權用戶</p>
+                                        )}
+
+                                        <div className="space-y-2 max-h-64 overflow-y-auto no-scrollbar">
+                                            {grantedUsers.map(u => (
+                                                <div key={u.uid} className={`rounded-xl border p-3 transition-all ${isDark ? 'border-slate-700 bg-slate-800/40' : 'border-slate-200 bg-slate-50'}`}>
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <div className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center text-[10px] font-black shrink-0">
+                                                                {(u.name || u.email || u.uid)[0].toUpperCase()}
+                                                            </div>
+                                                            <div className="flex flex-col leading-tight min-w-0">
+                                                                <span className="text-[11px] font-bold truncate">{u.name || '未知'}</span>
+                                                                <span className="text-[9px] opacity-40 truncate">{u.email || u.uid}</span>
+                                                            </div>
+                                                        </div>
+                                                        <button onClick={() => setEditingUid(editingUid === u.uid ? null : u.uid)} className={`text-[10px] font-bold px-2 py-1 rounded-md transition-all shrink-0 ${editingUid === u.uid ? 'bg-emerald-500 text-white' : isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}>
+                                                            {editingUid === u.uid ? '收起 ▲' : '編輯 ▼'}
+                                                        </button>
+                                                    </div>
+
+                                                    {/* 收合狀態：顯示功能標籤 */}
+                                                    {editingUid !== u.uid && (
+                                                        <div className="flex flex-wrap gap-1 mt-2">
+                                                            {[['colors','著色'],['flowBranchColor','流年色'],['calendarColors','曆色'],['romance','桃花'],['analysis','分析']].map(([k, lbl]) => (
+                                                                <span key={k} className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${u.perms?.[k] ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : isDark ? 'bg-slate-700 text-slate-600' : 'bg-slate-200 text-slate-400'}`}>{lbl}</span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {/* 展開編輯：即時 Toggle */}
+                                                    {editingUid === u.uid && (
+                                                        <div className={`mt-3 pt-3 border-t grid grid-cols-1 gap-2 ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
+                                                            {[['colors','四柱/大運著色'],['flowBranchColor','流年地支著色'],['calendarColors','萬年曆著色'],['romance','桃花感應標記'],['analysis','命盤文字分析']].map(([k, lbl]) => (
+                                                                <label key={k} className="flex items-center justify-between cursor-pointer">
+                                                                    <span className="text-[11px] font-medium">{lbl}</span>
+                                                                    <div className="relative" onClick={() => handleInlineToggle(u, k, !u.perms?.[k])}>
+                                                                        <div className={`w-9 h-5 rounded-full transition-colors ${u.perms?.[k] ? 'bg-emerald-500' : isDark ? 'bg-slate-700' : 'bg-slate-300'}`}>
+                                                                            <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${u.perms?.[k] ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                                                                        </div>
+                                                                    </div>
+                                                                </label>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+
+
                     <div className="max-w-[1200px] mx-auto space-y-3 sm:space-y-6">
-                        
+
                         <div className="flex flex-col gap-3 border-b border-slate-800/50 pb-3 text-left">
                             <div className="flex justify-between items-center">
                                 <h1 className={`text-2xl sm:text-3xl font-black tracking-tighter italic uppercase ${isDark ? 'text-emerald-500' : 'text-slate-950'}`}>四柱八字</h1>
                                 <div className="flex items-center gap-2">
                                     {!isLoggedIn ? (
-                                        <button onClick={async () => await window.FirebaseSDK.signInWithPopup(window.FirebaseSDK.auth, new window.FirebaseSDK.GoogleAuthProvider())} className="flex items-center px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-bold shadow-sm hover:bg-slate-50 transition-all"><GoogleIcon />Google 登入</button>
+                                        <button onClick={() => window.FirebaseSDK.signInWithRedirect(window.FirebaseSDK.auth, new window.FirebaseSDK.GoogleAuthProvider())} className="flex items-center px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-bold shadow-sm hover:bg-slate-50 transition-all"><GoogleIcon />Google 登入</button>
                                     ) : (
                                         <div className="flex items-center gap-2 pr-2 border-r border-slate-200 dark:border-slate-800 mr-1 text-right leading-none">
                                             <div className="flex flex-col"><span className="text-[12px] font-black opacity-40 uppercase">目前登入為</span><span className={`text-[12px] font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{user.displayName || "User"} {isAdmin && "★"}</span></div>
-                                            <button onClick={() => window.FirebaseSDK.signOut(window.FirebaseSDK.auth)} className="p-1.5 text-slate-400 hover:text-red-500 transition-all"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg></button>
+                                            <button onClick={() => window.FirebaseSDK.signOut(window.FirebaseSDK.auth)} className="p-1.5 text-slate-400 hover:text-red-500 transition-all"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg></button>
                                         </div>
+                                    )}
+                                    {isAdmin && (
+                                        <button onClick={() => setShowAdminPanel(true)} className={`p-2 rounded-full border shadow-sm transition-all text-sm ${isDark ? 'bg-slate-900 border-slate-700 text-emerald-400' : 'bg-white border-slate-200 text-emerald-600'}`} title="權限管理">⚙️</button>
                                     )}
                                     <button onClick={() => setIsDark(!isDark)} className={`p-2 rounded-full border shadow-sm transition-all ${isDark ? "bg-slate-900 border-slate-700 text-yellow-400" : "bg-white border-slate-200 text-slate-600"}`}>{isDark ? "🌙" : "☀️"}</button>
                                 </div>
                             </div>
-                            
+
                             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                                 <div className="flex items-center gap-1.5">
                                     <button onClick={handleLoadCase} className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700 shadow-sm'}`}>載入案例</button>
@@ -292,13 +611,13 @@
                                 {isLoggedIn && (
                                     <div className="flex items-center gap-2 flex-wrap">
                                         <div className={`flex items-center p-0.5 rounded-lg border shadow-inner transition-all ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                                            <input type="text" value={saveInputName} onChange={(e)=>setSaveInputName(e.target.value)} placeholder="名稱..." className={`bg-transparent border-0 text-[10px] sm:text-xs font-bold px-1.5 py-1 outline-none w-16 sm:w-28 placeholder:opacity-30 ${isDark ? 'text-slate-200' : 'text-slate-800'}`} />
+                                            <input type="text" value={saveInputName} onChange={(e) => setSaveInputName(e.target.value)} placeholder="名稱..." className={`bg-transparent border-0 text-[10px] sm:text-xs font-bold px-1.5 py-1 outline-none w-16 sm:w-28 placeholder:opacity-30 ${isDark ? 'text-slate-200' : 'text-slate-800'}`} />
                                             <button onClick={async () => { const { db, doc, setDoc } = window.FirebaseSDK; await setDoc(doc(db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', `profile_${Date.now()}`), { name: saveInputName, gregYear, month, day, hour, minute, gender, isDst, order: profiles.length }); setSaveInputName(""); }} className="bg-emerald-600 hover:bg-emerald-500 text-white text-[12px] px-2 py-1 rounded shadow-sm transition-all">Save</button>
                                         </div>
                                         <div className="relative group text-left">
                                             <button className="px-3 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold shadow-md hover:bg-blue-500 transition-all">命盤切換 ({profiles.length})</button>
                                             <div className="fixed inset-x-4 sm:absolute sm:inset-x-auto sm:right-0 sm:left-auto top-32 sm:top-full mt-2 sm:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] no-scrollbar overflow-y-auto max-h-[60vh]">
-                                                {profiles.map((p) => (<div key={p.id} onClick={() => {setGregYear(p.gregYear); setRocYear(p.gregYear - 1911); setMonth(p.month); setDay(p.day); setHour(p.hour); setMinute(p.minute); setGender(p.gender); setIsDst(p.isDst);}} className="select-none flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer border-b last:border-0 border-slate-100 dark:border-slate-800 text-left"><div className="flex flex-col truncate"><span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{p.name}</span><span className="text-[10px] text-slate-400">{p.gregYear}/{p.month}/{p.day}</span></div><button onClick={async (e) => { e.stopPropagation(); await window.FirebaseSDK.deleteDoc(window.FirebaseSDK.doc(window.FirebaseSDK.db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', p.id)); }} className="p-1 text-slate-300 hover:text-red-500"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div>))}
+                                                {profiles.map((p) => (<div key={p.id} onClick={() => { setGregYear(p.gregYear); setRocYear(p.gregYear - 1911); setMonth(p.month); setDay(p.day); setHour(p.hour); setMinute(p.minute); setGender(p.gender); setIsDst(p.isDst); }} className="select-none flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer border-b last:border-0 border-slate-100 dark:border-slate-800 text-left"><div className="flex flex-col truncate"><span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{p.name}</span><span className="text-[10px] text-slate-400">{p.gregYear}/{p.month}/{p.day}</span></div><button onClick={async (e) => { e.stopPropagation(); await window.FirebaseSDK.deleteDoc(window.FirebaseSDK.doc(window.FirebaseSDK.db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', p.id)); }} className="p-1 text-slate-300 hover:text-red-500"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div>))}
                                             </div>
                                         </div>
                                     </div>
@@ -306,14 +625,14 @@
                             </div>
 
                             <div className="grid grid-cols-3 sm:grid-cols-9 gap-1.5 sm:gap-2 items-end">
-                                <div className="flex flex-col gap-1 text-left"><span className="text-[10px] font-bold opacity-40 uppercase">性別</span><select value={gender} onChange={(e)=>setGender(e.target.value)} className={`rounded px-1 text-xs border h-9 appearance-none ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`}><option value="male">男</option><option value="female">女</option></select></div>
-                                <div className="flex flex-col gap-1 text-left"><span className="text-[10px] font-bold opacity-40 uppercase">西元</span><input type="number" value={gregYear} onChange={(e)=> {setGregYear(e.target.value); setRocYear(e.target.value-1911);}} className={`rounded px-1 text-xs border h-9 appearance-none ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`} /></div>
-                                <div className="flex flex-col gap-1 text-left"><span className="text-[10px] font-bold opacity-40 uppercase">民國</span><input type="number" value={rocYear} onChange={(e)=> {setRocYear(e.target.value); setGregYear(parseInt(e.target.value)+1911);}} className={`rounded px-1 text-xs border h-9 appearance-none ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`} /></div>
-                                <div className="flex flex-col gap-1 text-left"><span className="text-[10px] font-bold opacity-40 uppercase">月份</span><select value={month} onChange={(e)=>setMonth(parseInt(e.target.value) || 1)} className={`rounded px-1 text-xs border h-9 appearance-none ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`}>{Array.from({length:12}, (_,i)=><option key={i+1} value={i+1}>{i+1}月</option>)}</select></div>
-                                <div className="flex flex-col gap-1 text-left"><span className="text-[10px] font-bold uppercase">日期</span><input type="number" value={day} onChange={(e)=>setDay(e.target.value)} className={`rounded px-1 text-xs border h-9 appearance-none w-full ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`} /></div>
-                                <div className="flex flex-col gap-1 text-left"><span className="text-[10px] font-bold opacity-40 uppercase">時辰</span><select value={hour} onChange={(e)=>setHour(parseInt(e.target.value))} className={`rounded px-1 text-[10px] sm:text-xs border h-9 appearance-none ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`}>{hourOptions.map((o,i) => <option key={i} value={o.val}>{o.label}</option>)}</select></div>
-                                <div className="flex flex-col gap-1 text-left"><span className="text-[10px] font-bold opacity-40 uppercase">分鐘</span><input type="number" value={minute} onChange={(e)=>setMinute(e.target.value)} className={`rounded px-1 text-xs border h-9 appearance-none w-full ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`} /></div>
-                                <div className="flex items-center gap-1 h-9 col-span-2 sm:col-span-1 text-left"><input type="checkbox" id="dst" checked={isDst} onChange={(e)=>setIsDst(e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" /><label htmlFor="dst" className={`text-[11px] font-bold uppercase ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>夏令時間</label></div>
+                                <div className="flex flex-col gap-1 text-left"><span className="text-[10px] font-bold opacity-40 uppercase">性別</span><select value={gender} onChange={(e) => setGender(e.target.value)} className={`rounded px-1 text-xs border h-9 appearance-none ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`}><option value="male">男</option><option value="female">女</option></select></div>
+                                <div className="flex flex-col gap-1 text-left"><span className="text-[10px] font-bold opacity-40 uppercase">西元</span><input type="number" value={gregYear} onChange={(e) => { setGregYear(e.target.value); setRocYear(e.target.value - 1911); }} className={`rounded px-1 text-xs border h-9 appearance-none ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`} /></div>
+                                <div className="flex flex-col gap-1 text-left"><span className="text-[10px] font-bold opacity-40 uppercase">民國</span><input type="number" value={rocYear} onChange={(e) => { setRocYear(e.target.value); setGregYear(parseInt(e.target.value) + 1911); }} className={`rounded px-1 text-xs border h-9 appearance-none ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`} /></div>
+                                <div className="flex flex-col gap-1 text-left"><span className="text-[10px] font-bold opacity-40 uppercase">月份</span><select value={month} onChange={(e) => setMonth(parseInt(e.target.value) || 1)} className={`rounded px-1 text-xs border h-9 appearance-none ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`}>{Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}月</option>)}</select></div>
+                                <div className="flex flex-col gap-1 text-left"><span className="text-[10px] font-bold uppercase">日期</span><input type="number" value={day} onChange={(e) => setDay(e.target.value)} className={`rounded px-1 text-xs border h-9 appearance-none w-full ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`} /></div>
+                                <div className="flex flex-col gap-1 text-left"><span className="text-[10px] font-bold opacity-40 uppercase">時辰</span><select value={hour} onChange={(e) => setHour(parseInt(e.target.value))} className={`rounded px-1 text-[10px] sm:text-xs border h-9 appearance-none ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`}>{hourOptions.map((o, i) => <option key={i} value={o.val}>{o.label}</option>)}</select></div>
+                                <div className="flex flex-col gap-1 text-left"><span className="text-[10px] font-bold opacity-40 uppercase">分鐘</span><input type="number" value={minute} onChange={(e) => setMinute(e.target.value)} className={`rounded px-1 text-xs border h-9 appearance-none w-full ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`} /></div>
+                                <div className="flex items-center gap-1 h-9 col-span-2 sm:col-span-1 text-left"><input type="checkbox" id="dst" checked={isDst} onChange={(e) => setIsDst(e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" /><label htmlFor="dst" className={`text-[11px] font-bold uppercase ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>夏令時間</label></div>
                             </div>
                         </div>
 
@@ -331,10 +650,10 @@
                                                 {id === 'main' && (hour === -1 && pIdx === 3 ? <span className="opacity-20 text-[10px]">－</span> : <StarLabel starInfo={p.main} isDayMaster={p.label === '日柱'} />)}
                                                 {id === 'stem' && (hour === -1 && pIdx === 3 ? <span className="text-2xl font-serif text-emerald-500">吉</span> : <CharacterWithElement char={p.stem} element={p.stemElement} color={p.stemColor} />)}
                                                 {id === 'branch' && (hour === -1 && pIdx === 3 ? <span className="text-2xl font-serif text-emerald-500">時</span> : <CharacterWithElement char={p.branch} element={p.branchElement} color={p.branchColor} />)}
-                                                {id === 'sub_char' && (hour === -1 && pIdx === 3 ? <span className="opacity-20 text-[10px]">－</span> : <div className="grid grid-cols-3 w-full gap-0 px-0.5">{p.sub?.map((s, sIdx) => <div key={sIdx} className="flex justify-center items-center h-8 text-center"><CharacterWithElement char={s.char} element={s.star?.element} color={s.star?.color} isSmall /></div>)}</div>)}
+                                                {id === 'sub_char' && (hour === -1 && pIdx === 3 ? <span className="opacity-20 text-[10px]">－</span> : <div className="grid grid-cols-3 w-full gap-0 px-0.5">{p.sub?.map((s, sIdx) => <div key={sIdx} className="flex justify-center items-center h-8 text-center"><CharacterWithElement char={s.char} element={s.star?.element} color={s.star?.color} isSmall isYueling={s.isYueling} /></div>)}</div>)}
                                                 {id === 'sub_star' && (hour === -1 && pIdx === 3 ? <span className="opacity-20 text-[10px]">－</span> : <div className="grid grid-cols-3 w-full gap-0 items-start px-px text-center">{p.sub?.map((s, sIdx) => (<div key={sIdx} className="flex flex-col items-center flex-shrink-0 text-center"><span className={`text-[8px] font-bold mb-0.5 ${isDark ? "text-slate-500" : "text-slate-400"}`}>{s.type}</span>{s.star ? <StarLabel starInfo={s.star} isVertical extraSmall /> : <span className="opacity-10 text-[10px]">－</span>}</div>))}</div>)}
                                             </div>
-                                        )) : [1,2,3,4].map(i => <div key={i} className="h-12 border-r last:border-0 animate-pulse bg-slate-200/20"></div>)}
+                                        )) : [1, 2, 3, 4].map(i => <div key={i} className="h-12 border-r last:border-0 animate-pulse bg-slate-200/20"></div>)}
                                     </div>
                                 );
                             })}
@@ -345,14 +664,14 @@
                                 <span className="text-[10px] sm:text-xs font-bold uppercase text-slate-500 whitespace-nowrap">十神標記:</span>
                                 <div className="flex gap-1.5">
                                     {[0, 2, 3, 4, 5, 6].map(n => (
-                                        <button key={n} onClick={()=>setThreshold(n)} className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg border text-[10px] sm:text-sm font-bold transition-all flex items-center justify-center shrink-0 ${threshold === n ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg' : isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500 shadow-sm'}`}>{n||'OFF'}</button>
+                                        <button key={n} onClick={() => setThreshold(n)} className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg border text-[10px] sm:text-sm font-bold transition-all flex items-center justify-center shrink-0 ${threshold === n ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg' : isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500 shadow-sm'}`}>{n || 'OFF'}</button>
                                     ))}
                                 </div>
                             </div>
                             {!isLoggedIn && <span className="text-[9px] font-bold text-slate-950 dark:text-slate-400 italic">登入解鎖更多功能</span>}
                         </div>
 
-                        {isAdmin && <AnalysisBox title="六十甲子" content={chartData?.dayPillarAnalysis} isDark={isDark} />}
+                        {perms?.analysis && <AnalysisBox title="六十甲子" content={chartData?.dayPillarAnalysis} isDark={isDark} />}
 
                         <div className="divider-gradient my-2 opacity-30"></div>
 
@@ -377,10 +696,8 @@
 
                         {chartData && chartData.fortunePillars && (
                             <React.Fragment>
-                                <div className={`rounded-2xl border ${isDark ? "border-slate-700 shadow-2xl" : "border-slate-800/50 shadow-xl"} overflow-hidden overflow-x-auto no-scrollbar`}><table className="fortune-table"><thead className={isDark ? "bg-slate-900 border-b border-slate-700" : "bg-white"}><tr className="text-slate-400 font-bold uppercase tracking-widest text-[9px] sm:text-[10px]"><th className={`w-[11%] text-center ${isDark ? "bg-slate-900" : "bg-white"}`}>項目</th>{chartData.fortunePillars.map((p, i) => <th key={i} className={`border-l ${isDark ? "border-slate-700" : "border-slate-800/30"} text-center`}>{p.label}</th>)}</tr></thead><tbody className={isDark ? "bg-slate-900/20" : "bg-white"}><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>十神</td>{chartData.fortunePillars.map((p, i) => <td key={i} className={`px-px text-center border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}>{p.label === '童限' ? null : <StarLabel starInfo={p.tenGod} isFortune extraSmall /> }</td>)}</tr><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>運程</td>{chartData.fortunePillars.map((p, i) => (<td key={i} className={`text-center border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}>{p.stem ? (<div className="flex flex-col items-center justify-center text-center"><div className="flex gap-px items-center justify-center leading-none font-serif font-bold text-[11px] sm:text-lg"><span className={ELEMENT_STYLES[p.stemColor || "none"].color}>{p.stem}</span><span className={ELEMENT_STYLES[p.branchColor || "none"].color}>{p.branch}</span></div></div>) : <span className="opacity-20 text-[10px]">－</span>}</td>))}</tr>
-                                <tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center border-l border-slate-800/10`}>西曆</td>{chartData.fortunePillars.map((p, i) => (<td key={i} className="text-slate-400 font-bold text-[9px] sm:text-xs text-center border-l border-slate-800/10">{p.startYear}</td>))}</tr>
-                                <tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center border-b-2 ${isDark ? "bg-slate-900/50 border-slate-700" : "bg-white border-slate-800/50"}`}>周歲</td>{chartData.fortunePillars.map((p, i) => <td key={i} className={`text-blue-400 font-bold text-[9px] sm:text-xs border-b-2 text-center border-l ${isDark ? "border-slate-800/50" : "border-slate-800/50"}`}>{p.age}</td>)}</tr><tr><td className={`text-slate-700 font-bold text-[9px] sm:text-xs uppercase text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>流年</td>{chartData.fortunePillars.map((p, pIdx) => { const startOffset = 10 - p.flowYears.length; return (<td key={pIdx} className={`p-0 align-top border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}><div className="flex flex-col">{[...Array(10)].map((_, rowIndex) => { const dataIdx = rowIndex - startOffset; const fy = (dataIdx >= 0) ? p.flowYears[dataIdx] : null; if (!fy) return <div key={rowIndex} className="flow-year-row"></div>; return (<div key={rowIndex} className={`flow-year-row ${rowIndex === 4 ? (isDark ? 'border-b-2 border-slate-600/50' : 'border-b-2 border-slate-400/50') : 'border-b border-slate-800/10'} last:border-0 ${fy.year === CURRENT_REAL_YEAR ? 'highlight-year' : ''}`}><div className="flex items-center gap-px font-serif leading-none font-bold text-[10px] sm:text-[13px] text-center justify-center"><span className={ELEMENT_STYLES[fy.stemColor || "none"].color}>{fy.stem}</span><span className={isLoggedIn ? "" : (isDark ? 'text-slate-400' : 'text-slate-950')}>{fy.branch}</span></div><RomanceIcon level={fy.romance} isCompact /></div>);})}</div></td>);})}</tr></tbody></table></div>
-                                {isAdmin && <div className="mt-4"><AnalysisBox title="流年點評" content={chartData?.flowYearAnalysis} isDark={isDark} /></div>}
+                                <div className={`rounded-2xl border ${isDark ? "border-slate-700 shadow-2xl" : "border-slate-800/50 shadow-xl"} overflow-hidden overflow-x-auto no-scrollbar`}><table className="fortune-table"><thead className={isDark ? "bg-slate-900 border-b border-slate-700" : "bg-white"}><tr className="text-slate-400 font-bold uppercase tracking-widest text-[9px] sm:text-[10px]"><th className={`w-[11%] text-center ${isDark ? "bg-slate-900" : "bg-white"}`}>項目</th>{chartData.fortunePillars.map((p, i) => <th key={i} className={`border-l ${isDark ? "border-slate-700" : "border-slate-800/30"} text-center`}>{p.label}</th>)}</tr></thead><tbody className={isDark ? "bg-slate-900/20" : "bg-white"}><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>十神</td>{chartData.fortunePillars.map((p, i) => <td key={i} className={`px-px text-center border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}>{p.label === '童限' ? null : <StarLabel starInfo={p.tenGod} isFortune extraSmall />}</td>)}</tr><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>運程</td>{chartData.fortunePillars.map((p, i) => (<td key={i} className={`text-center border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}>{p.stem ? (<div className="flex flex-col items-center justify-center text-center"><div className="flex gap-px items-center justify-center leading-none font-serif font-bold text-[11px] sm:text-lg"><span className={ELEMENT_STYLES[p.stemColor || "none"].color}>{p.stem}</span><span className={ELEMENT_STYLES[p.branchColor || "none"].color}>{p.branch}</span></div></div>) : <span className="opacity-20 text-[10px]">－</span>}</td>))}</tr><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center border-b-2 ${isDark ? "bg-slate-900/50 border-slate-700" : "bg-white border-slate-800/50"}`}>周歲</td>{chartData.fortunePillars.map((p, i) => <td key={i} className={`text-blue-400 font-bold text-[9px] sm:text-xs border-b-2 text-center border-l ${isDark ? "border-slate-800/50" : "border-slate-800/50"}`}>{p.age}</td>)}</tr><tr><td className={`text-slate-700 font-bold text-[9px] sm:text-xs uppercase text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>流年</td>{chartData.fortunePillars.map((p, pIdx) => { const startOffset = 10 - p.flowYears.length; return (<td key={pIdx} className={`p-0 align-top border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}><div className="flex flex-col">{[...Array(10)].map((_, rowIndex) => { const dataIdx = rowIndex - startOffset; const fy = (dataIdx >= 0) ? p.flowYears[dataIdx] : null; if (!fy) return <div key={rowIndex} className="flow-year-row"></div>; return (<div key={rowIndex} className={`flow-year-row ${rowIndex === 4 ? (isDark ? 'border-b-2 border-slate-600/50' : 'border-b-2 border-slate-400/50') : 'border-b border-slate-800/10'} last:border-0 ${fy.year === CURRENT_REAL_YEAR ? 'highlight-year' : ''}`}><div className="flex items-center gap-px font-serif leading-none font-bold text-[10px] sm:text-[13px] text-center justify-center"><span className={ELEMENT_STYLES[fy.stemColor || "none"].color}>{fy.stem}</span><span className={perms?.flowBranchColor ? "" : (isDark ? 'text-slate-400' : 'text-slate-950')}>{fy.branch}</span></div><RomanceIcon level={fy.romance} isCompact /></div>); })}</div></td>); })}</tr></tbody></table></div>
+                                {perms?.analysis && <div className="mt-4"><AnalysisBox title="流年點評" content={chartData?.flowYearAnalysis} isDark={isDark} /></div>}
                             </React.Fragment>
                         )}
 
@@ -393,45 +710,45 @@
                                 <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
                                     <div className="flex flex-col gap-0.5 sm:gap-1">
                                         <span className="text-[6px] sm:text-[8px] font-bold opacity-40 uppercase">查詢西元</span>
-                                        <input type="number" value={calYear} onChange={(e)=> setCalYear(parseInt(e.target.value) || new Date().getFullYear())} className={`rounded px-1 py-0.5 text-[10px] sm:text-xs border h-7 sm:h-9 appearance-none w-14 sm:w-24 max-w-[65px] sm:max-w-none ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`} />
+                                        <input type="number" value={calYear} onChange={(e) => setCalYear(parseInt(e.target.value) || new Date().getFullYear())} className={`rounded px-1 py-0.5 text-[10px] sm:text-xs border h-7 sm:h-9 appearance-none w-14 sm:w-24 max-w-[65px] sm:max-w-none ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`} />
                                     </div>
                                     <div className="flex flex-col gap-0.5 sm:gap-1">
                                         <span className="text-[6px] sm:text-[8px] font-bold opacity-40 uppercase">查詢月份</span>
-                                        <select value={calMonth} onChange={(e)=> setCalMonth(parseInt(e.target.value) || 1)} className={`rounded px-1 py-0.5 text-[10px] sm:text-xs border h-7 sm:h-9 appearance-none w-14 sm:w-24 max-w-[65px] sm:max-w-none ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`}>{Array.from({length:12}, (_,i)=><option key={i+1} value={i+1}>{i+1}月</option>)}</select>
+                                        <select value={calMonth} onChange={(e) => setCalMonth(parseInt(e.target.value) || 1)} className={`rounded px-1 py-0.5 text-[10px] sm:text-xs border h-7 sm:h-9 appearance-none w-14 sm:w-24 max-w-[65px] sm:max-w-none ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`}>{Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}月</option>)}</select>
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div className="mb-8 w-full overflow-hidden">
                                 <table className="w-full table-fixed border-collapse border border-slate-700/30">
-                                    <thead><tr className={isDark ? "bg-slate-800/50" : "bg-slate-100/50"}><th className="p-0.5 border border-slate-700/30 text-[7px] sm:text-xs font-bold w-[13%] sm:w-20">月份</th>{Array.from({length:12}, (_,i)=><th key={i} className="p-0.5 border border-slate-700/30 text-[7px] sm:text-xs font-bold">{i+1}</th>)}</tr></thead>
+                                    <thead><tr className={isDark ? "bg-slate-800/50" : "bg-slate-100/50"}><th className="p-0.5 border border-slate-700/30 text-[7px] sm:text-xs font-bold w-[13%] sm:w-20">月份</th>{Array.from({ length: 12 }, (_, i) => <th key={i} className="p-0.5 border border-slate-700/30 text-[7px] sm:text-xs font-bold">{i + 1}</th>)}</tr></thead>
                                     <tbody>
                                         <tr>
                                             <td className="p-0.5 border border-slate-700/30 text-[7px] sm:text-xs font-bold text-center">流月</td>
                                             {calendarData?.flowMonths?.map((m, i) => (
                                                 <td key={i} className="p-0 border border-slate-700/30 font-serif font-bold text-center relative h-10 sm:h-12 overflow-hidden text-center">
                                                     <div className="flex flex-row items-center justify-center gap-0 text-[clamp(8px,2.1vw,14px)] sm:text-base leading-none w-full h-full">
-                                                        <span className={ELEMENT_STYLES[isLoggedIn ? m.stemColor : "none"].color}>{m.stem}</span>
+                                                        <span className={ELEMENT_STYLES[perms?.calendarColors ? m.stemColor : "none"].color}>{m.stem}</span>
                                                         <span className={isDark ? "text-slate-400" : "text-slate-600"}>{m.branch}</span>
                                                     </div>
                                                     <RomanceIcon level={m.romance} isCompact />
                                                 </td>
-                                            )) || Array.from({length:12}, (_,i)=><td key={i} className="p-1 border border-slate-700/30 opacity-20 text-center text-[7px]">...</td>)}
+                                            )) || Array.from({ length: 12 }, (_, i) => <td key={i} className="p-1 border border-slate-700/30 opacity-20 text-center text-[7px]">...</td>)}
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
-                            
+
                             {isCalLoading && <div className="h-1 loading-shimmer w-full rounded-full mb-4"></div>}
-                            
+
                             {/* 流日萬年曆優化：日期靠左 + 桃花靠右，格子內容自適應縮放 */}
                             <div className="grid grid-cols-7 gap-1 sm:gap-2">
-                                {['一','二','三','四','五','六','日'].map(w => (<div key={w} className="text-center text-[8px] sm:text-[10px] font-black opacity-40 pb-1.5 border-b border-slate-700/20 mb-1.5">週{w}</div>))}
+                                {['一', '二', '三', '四', '五', '六', '日'].map(w => (<div key={w} className="text-center text-[8px] sm:text-[10px] font-black opacity-40 pb-1.5 border-b border-slate-700/20 mb-1.5">週{w}</div>))}
                                 {calendarData?.days ? (
                                     <React.Fragment>
-                                        {Array.from({length: calendarData.days[0].weekday}).map((_, i) => (<div key={`empty-${i}`} className="h-12 sm:h-16 opacity-0"></div>))}
+                                        {Array.from({ length: calendarData.days[0].weekday }).map((_, i) => (<div key={`empty-${i}`} className="h-12 sm:h-16 opacity-0"></div>))}
                                         {calendarData.days.map((d, idx) => (
-                                            <div key={idx} className={`p-0.5 sm:p-2 rounded-lg border flex flex-col transition-all relative h-12 sm:h-auto ${d.day === new Date().getDate() && calMonth === (new Date().getMonth()+1) && calYear === new Date().getFullYear() ? 'ring-1.5 ring-blue-500 bg-blue-500/5 shadow-inner' : isDark ? 'bg-slate-950 border-slate-800 shadow-sm' : 'bg-white border-slate-200 shadow-sm'}`}>
+                                            <div key={idx} className={`p-0.5 sm:p-2 rounded-lg border flex flex-col transition-all relative h-12 sm:h-auto ${d.day === new Date().getDate() && calMonth === (new Date().getMonth() + 1) && calYear === new Date().getFullYear() ? 'ring-1.5 ring-blue-500 bg-blue-500/5 shadow-inner' : isDark ? 'bg-slate-950 border-slate-800 shadow-sm' : 'bg-white border-slate-200 shadow-sm'}`}>
                                                 <div className="flex justify-between items-start w-full h-2.5 sm:h-5">
                                                     <div className="text-[7px] sm:text-[10px] font-black opacity-30 leading-none pl-0.5">{d.day}</div>
                                                     <div className="relative w-3 h-3 sm:w-5 sm:h-5">
@@ -439,7 +756,7 @@
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center justify-center gap-0 font-serif font-bold text-[clamp(10px,4.5vw,14px)] sm:text-[14px] leading-none mt-1 sm:mt-1.5">
-                                                    <span className={ELEMENT_STYLES[isLoggedIn ? d.stemColor : "none"].color}>{d.stem}</span>
+                                                    <span className={ELEMENT_STYLES[perms?.calendarColors ? d.stemColor : "none"].color}>{d.stem}</span>
                                                     <span className={isDark ? "text-slate-300" : "text-slate-700"}>{d.branch}</span>
                                                 </div>
                                             </div>
@@ -458,7 +775,7 @@
                                 <div className="flex flex-row items-center justify-between md:justify-start gap-4 sm:gap-10 w-full md:w-auto">
                                     <div className="flex flex-col"><span className="text-[10px] uppercase font-black tracking-widest opacity-60 leading-tight">Created by</span><span className="text-xs sm:text-sm font-bold tracking-tight">kasimchang</span></div>
                                     <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 hidden md:block"></div>
-                                    <a href="https://www.msf.org.tw/" target="_blank" className="group flex flex-row items-center gap-2"><img src="https://upload.wikimedia.org/wikipedia/en/thumb/b/b9/M%C3%A9decins_Sans_Fronti%C3%A8res_%28logo%29.svg/500px-M%C3%A9decins_Sans_Fronti%C3%A8res_%28logo%29.svg.png" alt="MSF" className="h-7 sm:h-10 w-auto object-contain" onError={(e)=>e.target.style.display='none'} /><span className="text-[9px] uppercase font-black text-red-500/80 leading-none whitespace-nowrap">捐款支持做好事</span></a>
+                                    <a href="https://www.msf.org.tw/" target="_blank" className="group flex flex-row items-center gap-2"><img src="https://upload.wikimedia.org/wikipedia/en/thumb/b/b9/M%C3%A9decins_Sans_Fronti%C3%A8res_%28logo%29.svg/500px-M%C3%A9decins_Sans_Fronti%C3%A8res_%28logo%29.svg.png" alt="MSF" className="h-7 sm:h-10 w-auto object-contain" onError={(e) => e.target.style.display = 'none'} /><span className="text-[9px] uppercase font-black text-red-500/80 leading-none whitespace-nowrap">捐款支持做好事</span></a>
                                     <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 hidden md:block"></div>
                                     <div className="flex flex-col">
                                         <span className="text-[10px] uppercase font-black tracking-widest opacity-60 leading-tight">Copyright</span>
@@ -478,4 +795,5 @@
         const root = ReactDOM.createRoot(document.getElementById('root')); root.render(<App />);
     </script>
 </body>
+
 </html>
