@@ -1,0 +1,212 @@
+/*
+ * ===================================================================
+ * LuminousPath Pro — 全站樣式表 (index.css)
+ * 架構：Design Tokens (CSS Variables) + 全域樣式 + 工具類別
+ * 注意：響應式斷點樣式應優先使用 Tailwind，此處僅補充自訂邏輯。
+ * ===================================================================
+ */
+
+/* ===================================================================
+ * 一、Google Fonts 載入
+ * 注意：字型由 index.html 的 <link rel="preconnect"> 標籤載入，
+ *       此處不使用 @import，以避免 Live Server livereload 注入衝突。
+ * =================================================================== */
+
+
+/* ===================================================================
+ * 二、Design Tokens：CSS Variables
+ * 說明：所有顏色、字體、間距的語彙定義在 :root，
+ *       子元件應引用這些變數，而非直接使用 Tailwind 色票字符串。
+ * =================================================================== */
+:root {
+    /* --- 色彩語彙 (Color Tokens) --- */
+    /* 品牌主色 */
+    --color-primary:      #10b981; /* emerald-500 */
+    --color-primary-dark: #059669; /* emerald-600 */
+    --color-primary-glow: rgba(16, 185, 129, 0.10);
+
+    /* 強調色 */
+    --color-accent-blue:  #3b82f6; /* blue-500：用於起運、流月區塊 */
+    --color-accent-year:  #eab308; /* yellow-500：當前流年高亮 */
+
+    /* 危險/警告 */
+    --color-danger: #ef4444; /* red-500 */
+
+    /* 五行色彩（對應 ELEMENT_STYLES，供 JS 透過 CSS variable 取用） */
+    --color-element-wood-dark:  #10b981; /* 木：emerald-500 */
+    --color-element-wood-light: #047857; /* 木：emerald-700 */
+    --color-element-fire-dark:  #ef4444; /* 火：red-500 */
+    --color-element-fire-light: #dc2626; /* 火：red-600 */
+    --color-element-water-dark: #3b82f6; /* 水：blue-500 */
+    --color-element-water-light:#1d4ed8; /* 水：blue-700 */
+    --color-element-metal-dark: #94a3b8; /* 金：slate-400 */
+    --color-element-metal-light:#475569; /* 金：slate-600 */
+    --color-element-earth:      #a57c5a; /* 土 */
+    --color-element-earth-dark: #8b4513; /* 土（亮色模式） */
+
+    /* 桃花色 */
+    --color-romance-harmony: #ec4899;    /* pink-500 */
+    --color-romance-harmony-bg: rgba(248, 113, 153, 0.25);
+
+    /* 分隔線 */
+    --color-divider-dark:  rgba(71, 85, 105, 0.4); /* 暗色模式表格邊框 */
+    --color-divider-light: rgba(148, 163, 184, 0.3);
+
+    /* --- 字體語彙 (Typography Tokens) --- */
+    --font-sans:  'Noto Sans TC', sans-serif;
+    --font-serif: 'Noto Serif TC', serif;
+
+    /* 字體大小階層 */
+    --font-label:    10px;  /* 標籤、Tag、上方說明文字 */
+    --font-content:  12px;  /* 內容正文（手機）*/
+    --font-content-md: 14px; /* 內容正文（平板以上）*/
+    --font-jiazi:    clamp(1.5rem, 7vw, 3.2rem); /* 天干地支主字 */
+    --font-jiazi-sm: clamp(0.75rem, 2.8vw, 1.1rem); /* 十神星名 */
+
+    /* --- 間距語彙 (Spacing Tokens) --- */
+    --space-card-xs:   12px; /* 小型卡片內距 (手機) */
+    --space-card-md:   24px; /* 中型卡片內距 (平板以上) */
+    --space-stack-sm:  12px; /* 垂直堆疊間距（小） */
+    --space-stack-md:  24px; /* 垂直堆疊間距（中） */
+
+    /* --- 圓角語彙 (Radius Tokens) --- */
+    --radius-card:    16px; /* 卡片圓角 (rounded-2xl) */
+    --radius-button:   8px; /* 按鈕圓角 (rounded-lg) */
+    --radius-pill:   999px; /* 膠囊型按鈕 */
+
+    /* --- 動畫語彙 (Animation Tokens) --- */
+    --transition-base:  0.2s ease;
+    --transition-color: 0.3s ease;
+}
+
+
+/* ===================================================================
+ * 三、全域樣式 (Global Base)
+ * =================================================================== */
+body {
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+}
+
+/* Serif 覆寫：用於天干地支等漢字排版 */
+.font-serif {
+    font-family: var(--font-serif);
+}
+
+
+/* ===================================================================
+ * 四、工具類別 (Utility Classes)
+ * =================================================================== */
+
+/* 隱藏捲軸 */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Safe Area (iPhone 瀏海) */
+.safe-top {
+    padding-top: env(safe-area-inset-top);
+}
+
+/* 當前流年高亮行 */
+.highlight-year {
+    /* 使用 Design Token 而非硬編碼 yellow */
+    background: rgba(234, 179, 8, 0.15) !important;
+    box-shadow: inset 0 0 0 1px var(--color-accent-year);
+    border-radius: 2px;
+}
+
+/* 通用分隔線漸層 */
+.divider-gradient {
+    height: 1px;
+    background: linear-gradient(
+        to right,
+        transparent,
+        var(--color-primary),
+        transparent
+    );
+}
+
+
+/* ===================================================================
+ * 五、大運流年表格 (FortuneTable)
+ * =================================================================== */
+
+/* 固定欄寬，避免表格因內容撐開 */
+.fortune-table {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.fortune-table td,
+.fortune-table th {
+    border: 1px solid var(--color-divider-dark);
+    padding: 4px 0px;
+    vertical-align: middle;
+    text-align: center;
+}
+
+
+/* ===================================================================
+ * 六、流年行 (FlowYearRow)
+ * =================================================================== */
+
+/* 每個流年格子的容器，提供統一高度與動畫 */
+.flow-year-row {
+    height: 38px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: all var(--transition-base);
+    position: relative;
+}
+
+
+/* ===================================================================
+ * 七、載入動畫 (Loading States)
+ * =================================================================== */
+
+/* Shimmer 骨架屏動畫（萬年曆、命盤加載中） */
+.loading-shimmer {
+    background: linear-gradient(
+        90deg,
+        transparent 25%,
+        var(--color-primary-glow) 50%,
+        transparent 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0%   { background-position:  200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+
+/* ===================================================================
+ * 八、Admin Panel 動畫增強 (Admin Panel Transitions)
+ * 說明：以下為 Gemini 第二階段負責擴充的區域，目前為佔位定義。
+ * =================================================================== */
+
+/* Admin Panel 展開/收合動畫（待 Gemini 擴充） */
+.admin-panel-enter {
+    opacity: 0;
+    transform: translateY(-8px);
+}
+.admin-panel-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity var(--transition-base), transform var(--transition-base);
+}
+.admin-panel-exit-active {
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity var(--transition-base), transform var(--transition-base);
+}
