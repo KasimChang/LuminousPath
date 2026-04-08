@@ -8,7 +8,9 @@
     <title>四柱八字 - LuminousPath Pro</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&family=Noto+Sans+TC:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&family=Noto+Sans+TC:wght@300;400;700;900&display=swap"
+        rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -290,6 +292,238 @@
             );
         };
 
+        // 五行分區元資料（全量 Tailwind class，避免 CDN purge 問題）
+        const PROFILE_ELEMENTS = ['木', '火', '土', '金', '水'];
+        const PROFILE_ELEMENT_META = {
+            '木': { bg: 'bg-emerald-500', textCls: 'text-emerald-700', darkTextCls: 'text-emerald-400', borderDrop: 'border-emerald-400', bgDrop: 'bg-emerald-50', darkBgDrop: 'bg-emerald-900/10' },
+            '火': { bg: 'bg-red-500', textCls: 'text-red-700', darkTextCls: 'text-red-400', borderDrop: 'border-red-400', bgDrop: 'bg-red-50', darkBgDrop: 'bg-red-900/10' },
+            '土': { bg: 'bg-amber-600', textCls: 'text-amber-700', darkTextCls: 'text-amber-400', borderDrop: 'border-amber-400', bgDrop: 'bg-amber-50', darkBgDrop: 'bg-amber-900/10' },
+            '金': { bg: 'bg-slate-400', textCls: 'text-slate-600', darkTextCls: 'text-slate-400', borderDrop: 'border-slate-400', bgDrop: 'bg-slate-100', darkBgDrop: 'bg-slate-700/30' },
+            '水': { bg: 'bg-blue-500', textCls: 'text-blue-700', darkTextCls: 'text-blue-400', borderDrop: 'border-blue-400', bgDrop: 'bg-blue-50', darkBgDrop: 'bg-blue-900/10' },
+            '未分類': { bg: 'bg-slate-300', textCls: 'text-slate-500', darkTextCls: 'text-slate-500', borderDrop: 'border-slate-400', bgDrop: 'bg-slate-100', darkBgDrop: 'bg-slate-700/30' },
+        };
+
+        // ============================================================
+        // 元件：命盤管理面板 (ProfileSwitcherPanel)
+        //   桌面：錢定按鈕下方下拉面板 (點擊觸發)
+        //   行動：底部 Sheet (從下方滑出)
+        //   命盤拖放：HTML5 DnD (桌面) + 長按 400ms 觸控拖移 (行動)
+        //   分類排序：桌面拖移分組標題 / 行動按 ↑↓ 按鈕
+        // ============================================================
+        const ProfileSwitcherPanel = ({ profiles, groupedProfiles, activeProfileName, isDark, onClose, onLoadProfile, onDeleteProfile, onCategoryChange }) => {
+            const [draggingId, setDraggingId] = React.useState(null);
+            const [dragOverCat, setDragOverCat] = React.useState(null);   // 命盤卡片拖进哪個 zone
+            const [dragOverEl, setDragOverEl] = React.useState(null);     // 分類標題拖进哪個 zone
+            const panelBodyRef = React.useRef(null);
+            const touchTimerRef = React.useRef(null);
+            const touchActiveRef = React.useRef(false);
+            const touchIdRef = React.useRef(null);
+            const ghostRef = React.useRef(null);
+            const dragItemRef = React.useRef(null); // { kind: 'cat'|'card', value }
+
+            // 分類順序：專属所屬 component，儲 localStorage
+            const [catOrder, setCatOrder] = React.useState(() => {
+                try { const s = localStorage.getItem('lp-cat-order'); if (s) return JSON.parse(s); } catch { }
+                return ['\u6728', '\u706b', '\u571f', '\u91d1', '\u6c34'];
+            });
+            React.useEffect(() => { localStorage.setItem('lp-cat-order', JSON.stringify(catOrder)); }, [catOrder]);
+
+            // 行動↑↓ 移動分類順序
+            const moveCat = (el, dir) => setCatOrder(prev => {
+                const next = [...prev]; const idx = next.indexOf(el); const ni = idx + dir;
+                if (ni < 0 || ni >= next.length) return prev;
+                [next[idx], next[ni]] = [next[ni], next[idx]]; return next;
+            });
+
+            // 標題 DnD (桌面別类拖移)
+            const onCatHS = (e, el) => { dragItemRef.current = { kind: 'cat', value: el }; e.dataTransfer.setData('text/plain', 'cat:' + el); e.dataTransfer.effectAllowed = 'move'; };
+            const onCatHO = (e, el) => { e.preventDefault(); if (dragItemRef.current?.kind === 'cat') setDragOverEl(el); };
+            const onCatHL = (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverEl(null); };
+            const onCatHD = (e, target) => {
+                e.preventDefault();
+                if (dragItemRef.current?.kind !== 'cat') return;
+                const src = dragItemRef.current.value;
+                if (src !== target) setCatOrder(prev => {
+                    const next = [...prev];
+                    next.splice(next.indexOf(src), 1);
+                    next.splice(next.indexOf(target), 0, src);
+                    return next;
+                });
+                dragItemRef.current = null; setDragOverEl(null);
+            };
+
+            // 命盤卡片 Desktop DnD
+            const onDS = (e, id) => { dragItemRef.current = { kind: 'card', value: id }; e.dataTransfer.setData('text/plain', id); e.dataTransfer.effectAllowed = 'move'; setDraggingId(id); };
+            const onDO = (e, cat) => { e.preventDefault(); if (dragItemRef.current?.kind === 'card' && dragOverCat !== cat) setDragOverCat(cat); };
+            const onDL = (e, cat) => { if (!e.currentTarget.contains(e.relatedTarget) && dragOverCat === cat) setDragOverCat(null); };
+            const onDrop = (e, cat) => { e.preventDefault(); if (dragItemRef.current?.kind === 'card') { const id = dragItemRef.current.value; if (id) onCategoryChange(id, cat); } dragItemRef.current = null; setDraggingId(null); setDragOverCat(null); };
+            const onDE = () => { dragItemRef.current = null; setDraggingId(null); setDragOverCat(null); setDragOverEl(null); };
+
+            // 命盤卡片 Mobile Touch DnD
+            // 換登非 passive touchmove，阻止拖移時頁面滚動
+            React.useEffect(() => {
+                const el = panelBodyRef.current;
+                if (!el) return;
+                const onTM = (e) => {
+                    if (!touchActiveRef.current) return;
+                    e.preventDefault();
+                    const t = e.touches[0];
+                    if (ghostRef.current) {
+                        ghostRef.current.style.left = `${t.clientX - ghostRef.current._ox}px`;
+                        ghostRef.current.style.top = `${t.clientY - ghostRef.current._oy}px`;
+                        ghostRef.current.style.pointerEvents = 'none';
+                    }
+                    const under = document.elementFromPoint(t.clientX, t.clientY);
+                    setDragOverCat(under?.closest('[data-dz]')?.dataset?.dz || null);
+                };
+                el.addEventListener('touchmove', onTM, { passive: false });
+                return () => el.removeEventListener('touchmove', onTM);
+            }, []);
+            const onTS = (e, id) => {
+                const card = e.currentTarget; const rect = card.getBoundingClientRect();
+                const t = e.touches[0]; const sx = t.clientX, sy = t.clientY;
+                touchTimerRef.current = setTimeout(() => {
+                    const g = document.createElement('div');
+                    g.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;z-index:9999;pointer-events:none;opacity:0.85;border-radius:10px;box-shadow:0 20px 50px rgba(0,0,0,.35);transform:scale(1.06) rotate(1.5deg);background:${isDark ? '#1e293b' : '#fff'};border:1.5px solid ${isDark ? '#475569' : '#e2e8f0'};overflow:hidden;`;
+                    g.innerHTML = card.innerHTML; g._ox = sx - rect.left; g._oy = sy - rect.top;
+                    document.body.appendChild(g); ghostRef.current = g;
+                    touchActiveRef.current = true; touchIdRef.current = id;
+                    setDraggingId(id); if (navigator.vibrate) navigator.vibrate([30, 10, 30]);
+                }, 400);
+            };
+            const onTE = (e) => {
+                clearTimeout(touchTimerRef.current);
+                if (!touchActiveRef.current) return;
+                const t = e.changedTouches[0];
+                if (ghostRef.current) ghostRef.current.style.display = 'none';
+                const under = document.elementFromPoint(t.clientX, t.clientY);
+                if (ghostRef.current) ghostRef.current.style.display = '';
+                const zone = under?.closest('[data-dz]');
+                if (zone && touchIdRef.current) onCategoryChange(touchIdRef.current, zone.dataset.dz);
+                if (ghostRef.current) { ghostRef.current.remove(); ghostRef.current = null; }
+                touchActiveRef.current = false; touchIdRef.current = null;
+                setDraggingId(null); setDragOverCat(null);
+            };
+            const onTC = () => {
+                clearTimeout(touchTimerRef.current);
+                if (ghostRef.current) { ghostRef.current.remove(); ghostRef.current = null; }
+                touchActiveRef.current = false; touchIdRef.current = null;
+                setDraggingId(null); setDragOverCat(null);
+            };
+
+            // 渲染單張命盤卡片
+            const renderCard = (p) => {
+                const isActive = activeProfileName === p.name;
+                const isDragging = draggingId === p.id;
+                return (
+                    <div key={p.id} draggable="true"
+                        onDragStart={(e) => onDS(e, p.id)} onDragEnd={onDE}
+                        onTouchStart={(e) => onTS(e, p.id)} onTouchEnd={onTE} onTouchCancel={onTC}
+                        onClick={() => { if (!touchActiveRef.current) onLoadProfile(p); }}
+                        style={{ userSelect: 'none' }}
+                        className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border cursor-grab transition-all duration-150 mb-1.5
+                            ${isDragging ? 'opacity-20' : 'opacity-100'}
+                            ${isActive
+                                ? (isDark ? 'bg-slate-700 border-slate-500 ring-1 ring-blue-500/40' : 'bg-blue-50 border-blue-200')
+                                : (isDark ? 'bg-slate-800/70 border-slate-700 hover:bg-slate-700' : 'bg-white border-slate-200 hover:bg-slate-50')}
+                            shadow-sm`}
+                    >
+                        <div className="flex flex-col min-w-0 flex-1">
+                            <span className={`text-[13px] font-bold truncate ${isActive ? (isDark ? 'text-blue-400' : 'text-blue-600') : (isDark ? 'text-slate-200' : 'text-slate-800')}`}>{p.name}</span>
+                            <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{p.gregYear}/{String(p.month).padStart(2, '0')}/{String(p.day).padStart(2, '0')} {p.gender === 'male' ? '\u2642' : '\u2640'}</span>
+                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); onDeleteProfile(e, p.id, p.name); }} className="p-1 text-slate-300 hover:text-red-500 transition-all flex-shrink-0">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                    </div>
+                );
+            };
+
+            // 渲染分類區塊（含標題拖放排序）
+            const renderZone = (element, idx) => {
+                const meta = PROFILE_ELEMENT_META[element];
+                const items = groupedProfiles[element] || [];
+                const isOver = dragOverCat === element;
+                const isHeaderOver = dragOverEl === element;
+                if (element === '\u672a\u5206\u985e' && items.length === 0) return null;
+                return (
+                    <div key={element} className="mb-3">
+                        {/* 分類標題：可拖移排序 + 行動↑↓ 按鈕 */}
+                        <div
+                            draggable={element !== '\u672a\u5206\u985e'}
+                            onDragStart={(e) => element !== '\u672a\u5206\u985e' && onCatHS(e, element)}
+                            onDragOver={(e) => element !== '\u672a\u5206\u985e' && onCatHO(e, element)}
+                            onDragLeave={onCatHL}
+                            onDrop={(e) => element !== '\u672a\u5206\u985e' && onCatHD(e, element)}
+                            onDragEnd={onDE}
+                            className={`flex items-center gap-2 px-3 py-1.5 text-[10px] font-black tracking-widest rounded-t-lg transition-all
+                                ${element !== '\u672a\u5206\u985e' ? 'cursor-grab' : ''}
+                                ${isHeaderOver ? (isDark ? 'bg-slate-600 ring-1 ring-blue-400' : 'bg-blue-100 ring-1 ring-blue-300') : (isDark ? 'bg-slate-800' : 'bg-slate-100')}`}
+                        >
+                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${meta.bg}`} />
+                            <span className={isDark ? meta.darkTextCls : meta.textCls}>{meta.emoji} {element}</span>
+                            <span className="opacity-30 ml-auto font-normal normal-case">{items.length}</span>
+                            {/* 行動端↑↓ 按鈕 */}
+                            {element !== '\u672a\u5206\u985e' && (
+                                <div className="flex gap-0.5 sm:hidden">
+                                    <button onClick={(e) => { e.stopPropagation(); moveCat(element, -1); }}
+                                        disabled={idx === 0}
+                                        className="p-0.5 rounded opacity-50 disabled:opacity-20 hover:opacity-100 transition-all"
+                                    >↑</button>
+                                    <button onClick={(e) => { e.stopPropagation(); moveCat(element, 1); }}
+                                        disabled={idx === catOrder.length - 1}
+                                        className="p-0.5 rounded opacity-50 disabled:opacity-20 hover:opacity-100 transition-all"
+                                    >↓</button>
+                                </div>
+                            )}
+                        </div>
+                        {/* 拖放區域 */}
+                        <div data-dz={element}
+                            onDragOver={(e) => onDO(e, element)}
+                            onDragLeave={(e) => onDL(e, element)}
+                            onDrop={(e) => onDrop(e, element)}
+                            className={`min-h-[50px] rounded-b-lg p-2 border-2 transition-all duration-200
+                                ${isOver ? `${meta.borderDrop} ${isDark ? meta.darkBgDrop : meta.bgDrop}` : 'border-transparent'}
+                                ${isDark ? 'bg-slate-900/40' : 'bg-slate-50/60'}`}
+                        >
+                            {items.length === 0
+                                ? <div className="h-8 flex items-center justify-center"><span className={`text-[10px] italic ${isDark ? 'text-slate-600' : 'text-slate-300'}`}>{isOver ? '\u653e\u958b\u4ee5\u79fb\u5165 \u2193' : '\u62d6\u79fb\u547d\u76e4\u81f3\u6b64'}</span></div>
+                                : items.map(renderCard)
+                            }
+                        </div>
+                    </div>
+                );
+            };
+
+            const displayOrder = catOrder.concat(['\u672a\u5206\u985e']);
+
+            return (
+                <React.Fragment>
+                    <div className="fixed inset-0 z-[99]" onClick={onClose} />
+                    <div className={`z-[100] flex flex-col overflow-hidden shadow-2xl
+                        fixed bottom-0 left-0 right-0 max-h-[78vh] rounded-t-2xl
+                        sm:absolute sm:bottom-auto sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 sm:max-h-[72vh] sm:rounded-xl
+                        ${isDark ? 'bg-slate-900 border border-slate-700' : 'bg-white border border-slate-200'}`}
+                    >
+                        <div className={`flex items-center justify-between px-4 py-3 flex-shrink-0 border-b ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
+                            <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full bg-slate-300/60 sm:hidden" />
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">命盤管理</p>
+                                <p className={`text-xs font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>長按拖移分類 · 共 {profiles.length} 組</p>
+                            </div>
+                            <button onClick={onClose} className={`p-1.5 rounded-full transition-all ${isDark ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-400'}`}>✕</button>
+                        </div>
+                        <div ref={panelBodyRef} className="overflow-y-auto no-scrollbar p-3 flex-1">
+                            {profiles.length === 0
+                                ? <div className="py-12 flex flex-col items-center gap-2 opacity-40"><span className="text-3xl">\ud83d\udced</span><p className="text-xs font-bold">尚未儲存任何命盤</p></div>
+                                : displayOrder.map((el, idx) => renderZone(el, idx))
+                            }
+                        </div>
+                    </div>
+                </React.Fragment>
+            );
+        };
+
         const App = () => {
             const CURRENT_REAL_YEAR = new Date().getFullYear();
             const [isDark, setIsDark] = useState(false);
@@ -336,6 +570,7 @@
             const [profiles, setProfiles] = useState([]);
             const [saveInputName, setSaveInputName] = useState("");
             const [activeProfileName, setActiveProfileName] = useState(null); // 目前顯示的命盤名稱
+            const [showProfilesPanel, setShowProfilesPanel] = useState(false); // 命盤管理面板開關
 
             const isAdmin = useMemo(() => user && user.uid === ADMIN_UID, [user]);
             const isLoggedIn = useMemo(() => !!user, [user]);
@@ -533,12 +768,12 @@
                 try {
                     await setDoc(
                         doc(db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', `profile_${Date.now()}`),
-                        { name, gregYear, month, day, hour, minute, gender, isDst, order: profiles.length, createdAt: Date.now() }
+                        { name, gregYear, month, day, hour, minute, gender, isDst, order: profiles.length, createdAt: Date.now(), category: chartData?.pillars?.[2]?.stemElement || '未分類' }
                     );
                     setSaveInputName('');
                     setActiveProfileName(name);
                 } catch (e) { console.error('Save profile failed:', e?.code, e?.message); alert('儲存失敗：' + (e?.message || e?.code || '請確認 Firestore 安全規則')); }
-            }, [user, saveInputName, gregYear, month, day, hour, minute, gender, isDst, profiles.length]);
+            }, [user, saveInputName, gregYear, month, day, hour, minute, gender, isDst, profiles.length, chartData]);
 
             // --- 刪除命盤 ---
             const handleDeleteProfile = useCallback(async (e, profileId, profileName) => {
@@ -550,6 +785,27 @@
                     if (activeProfileName === profileName) setActiveProfileName(null);
                 } catch (e) { console.error('Delete profile failed:', e?.code); }
             }, [user, activeProfileName]);
+
+            // --- 更新命盤五行分類（拖放後呼叫）---
+            const handleCategoryChange = useCallback(async (profileId, newCategory) => {
+                if (!user || !window.FirebaseSDK) return;
+                // 樂觀更新本地 state
+                setProfiles(prev => prev.map(p => p.id === profileId ? { ...p, category: newCategory } : p));
+                try {
+                    const { db, doc, updateDoc } = window.FirebaseSDK;
+                    await updateDoc(doc(db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', profileId), { category: newCategory });
+                } catch (e) { console.error('Category update failed:', e); }
+            }, [user]);
+
+            // --- 依五行分類分組命盤（含未分類）---
+            const groupedProfiles = useMemo(() => {
+                const groups = { '木': [], '火': [], '土': [], '金': [], '水': [], '未分類': [] };
+                profiles.forEach(p => {
+                    const cat = p.category || '未分類';
+                    (groups[cat] || groups['未分類']).push(p);
+                });
+                return groups;
+            }, [profiles]);
 
             const StarLabel = ({ starInfo, isDayMaster = false, isVertical = false, extraSmall = false, isFortune = false }) => {
                 if (!starInfo) return null;
@@ -592,7 +848,7 @@
                 );
             };
 
-            const handleLoadCase = () => { setGregYear(1977); setRocYear(66); setMonth(1); setDay(24); setHour(9); setMinute(0); setIsDst(false); };
+            const handleLoadCase = () => { setGregYear(1977); setRocYear(66); setMonth(1); setDay(24); setHour(9); setMinute(0); setIsDst(false); setSaveInputName('命盤範例'); };
             const handleClear = () => { setGregYear(""); setRocYear(""); setMonth(1); setDay(""); setHour(-1); setMinute(0); setIsDst(false); setChartData(null); };
 
 
@@ -793,22 +1049,29 @@
                                             </div>
                                         )}
 
-                                        <div className="relative group text-left">
-                                            <button className="px-3 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold shadow-md hover:bg-blue-500 transition-all">命盤切換 ({profiles.length})</button>
-                                            <div className="fixed inset-x-4 sm:absolute sm:inset-x-auto sm:right-0 sm:left-auto top-32 sm:top-full mt-2 sm:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] no-scrollbar overflow-y-auto max-h-[60vh]">
-                                                {profiles.length === 0 && <p className="text-[11px] opacity-30 text-center py-4">尚未儲存任何命盤</p>}
-                                                {profiles.map((p) => (
-                                                    <div key={p.id} onClick={() => { setGregYear(p.gregYear); setRocYear(p.gregYear - 1911); setMonth(p.month); setDay(p.day); setHour(p.hour); setMinute(p.minute); setGender(p.gender); setIsDst(p.isDst); setActiveProfileName(p.name); }} className={`select-none flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer border-b last:border-0 border-slate-100 dark:border-slate-800 text-left ${activeProfileName === p.name ? (isDark ? 'bg-slate-800' : 'bg-blue-50') : ''}`}>
-                                                        <div className="flex flex-col truncate">
-                                                            <span className={`text-xs font-bold truncate ${activeProfileName === p.name ? 'text-blue-500' : 'text-slate-800 dark:text-slate-200'}`}>{p.name}</span>
-                                                            <span className="text-[10px] text-slate-400">{p.gregYear}/{p.month}/{p.day}</span>
-                                                        </div>
-                                                        <button onClick={(e) => handleDeleteProfile(e, p.id, p.name)} className="p-1 text-slate-300 hover:text-red-500 shrink-0">
-                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                        <div className="relative text-left">
+                                            <button
+                                                onClick={() => setShowProfilesPanel(p => !p)}
+                                                className={`px-3 py-2 rounded-lg text-xs font-bold shadow-md transition-all
+                                                    ${showProfilesPanel
+                                                        ? (isDark ? 'bg-blue-700 text-white' : 'bg-blue-700 text-white')
+                                                        : 'bg-blue-600 hover:bg-blue-500 text-white'}`
+                                                }
+                                            >
+                                                命盤管理 ({profiles.length})
+                                            </button>
+                                            {showProfilesPanel && (
+                                                <ProfileSwitcherPanel
+                                                    profiles={profiles}
+                                                    groupedProfiles={groupedProfiles}
+                                                    activeProfileName={activeProfileName}
+                                                    isDark={isDark}
+                                                    onClose={() => setShowProfilesPanel(false)}
+                                                    onLoadProfile={(p) => { setGregYear(p.gregYear); setRocYear(p.gregYear - 1911); setMonth(p.month); setDay(p.day); setHour(p.hour); setMinute(p.minute); setGender(p.gender); setIsDst(p.isDst); setActiveProfileName(p.name); setShowProfilesPanel(false); }}
+                                                    onDeleteProfile={handleDeleteProfile}
+                                                    onCategoryChange={handleCategoryChange}
+                                                />
+                                            )}
                                         </div>
                                     </div>
                                 )}
