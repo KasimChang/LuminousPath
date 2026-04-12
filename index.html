@@ -174,7 +174,7 @@
                                             <div className="flex flex-col leading-tight"><span className="text-xs font-bold">{adminFoundUser.name || '未知姓名'}</span><span className="text-[10px] opacity-40">{adminFoundUser.email}</span></div>
                                         </div>
                                         <div className="grid grid-cols-1 gap-2">
-                                            {[['colors', '四柱/大運著色'], ['flowBranchColor', '流年地支著色'], ['calendarColors', '萬年曆著色'], ['romance', '桃花感應標記'], ['wealth', '財旺感應標記'], ['analysis', '命盤文字分析']].map(([key, label]) => (
+                                            {[['colors', '四柱/大運著色'], ['flowBranchColor', '流年地支著色'], ['calendarColors', '萬年曆著色'], ['romance', '桃花感應標記'], ['wealth', '財旺感應標記'], ['travelingHorse', '驛馬感應標記'], ['analysis', '命盤文字分析']].map(([key, label]) => (
                                                 <label key={key} className="flex items-center justify-between cursor-pointer">
                                                     <span className="text-xs font-medium">{label}</span>
                                                     <div className="relative" onClick={() => setAdminPerms(p => ({ ...p, [key]: !p[key] }))}>
@@ -204,8 +204,8 @@
                                                 </div>
                                                 <button onClick={() => setEditingUid(editingUid === u.uid ? null : u.uid)} className={`text-[10px] font-bold px-2 py-1 rounded-md transition-all shrink-0 ${editingUid === u.uid ? 'bg-emerald-500 text-white' : isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}>{editingUid === u.uid ? '收起 ▲' : '編輯 ▼'}</button>
                                             </div>
-                                            {editingUid !== u.uid && (<div className="flex flex-wrap gap-1 mt-2">{[['colors', '著色'], ['flowBranchColor', '流年色'], ['calendarColors', '曆色'], ['romance', '桃花'], ['wealth', '財旺'], ['analysis', '分析']].map(([k, lbl]) => (<span key={k} className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${u.perms?.[k] ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : isDark ? 'bg-slate-700 text-slate-600' : 'bg-slate-200 text-slate-400'}`}>{lbl}</span>))}</div>)}
-                                            {editingUid === u.uid && (<div className={`mt-3 pt-3 border-t grid grid-cols-1 gap-2 ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>{[['colors', '四柱/大運著色'], ['flowBranchColor', '流年地支著色'], ['calendarColors', '萬年曆著色'], ['romance', '桃花感應標記'], ['wealth', '財旺感應標記'], ['analysis', '命盤文字分析']].map(([k, lbl]) => (<label key={k} className="flex items-center justify-between cursor-pointer"><span className="text-[11px] font-medium">{lbl}</span><div className="relative" onClick={() => handleInlineToggle(u, k, !u.perms?.[k])}><div className={`w-9 h-5 rounded-full transition-colors ${u.perms?.[k] ? 'bg-emerald-500' : isDark ? 'bg-slate-700' : 'bg-slate-300'}`}><div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${u.perms?.[k] ? 'translate-x-4' : 'translate-x-0.5'}`} /></div></div></label>))}</div>)}
+                                            {editingUid !== u.uid && (<div className="flex flex-wrap gap-1 mt-2">{[['colors', '著色'], ['flowBranchColor', '流年色'], ['calendarColors', '曆色'], ['romance', '桃花'], ['wealth', '財旺'], ['travelingHorse', '驛馬'], ['analysis', '分析']].map(([k, lbl]) => (<span key={k} className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${u.perms?.[k] ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : isDark ? 'bg-slate-700 text-slate-600' : 'bg-slate-200 text-slate-400'}`}>{lbl}</span>))}</div>)}
+                                            {editingUid === u.uid && (<div className={`mt-3 pt-3 border-t grid grid-cols-1 gap-2 ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>{[['colors', '四柱/大運著色'], ['flowBranchColor', '流年地支著色'], ['calendarColors', '萬年曆著色'], ['romance', '桃花感應標記'], ['wealth', '財旺感應標記'], ['travelingHorse', '驛馬感應標記'], ['analysis', '命盤文字分析']].map(([k, lbl]) => (<label key={k} className="flex items-center justify-between cursor-pointer"><span className="text-[11px] font-medium">{lbl}</span><div className="relative" onClick={() => handleInlineToggle(u, k, !u.perms?.[k])}><div className={`w-9 h-5 rounded-full transition-colors ${u.perms?.[k] ? 'bg-emerald-500' : isDark ? 'bg-slate-700' : 'bg-slate-300'}`}><div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${u.perms?.[k] ? 'translate-x-4' : 'translate-x-0.5'}`} /></div></div></label>))}</div>)}
                                         </div>
                                     ))}
                                 </div>
@@ -219,7 +219,7 @@
         // ============================================================
         // 元件：命盤四柱表格 (BaziPillarTable)
         // ============================================================
-        const BaziPillarTable = ({ chartData, isLoading, isDark, hour, ELEMENT_STYLES, StarLabel, CharacterWithElement }) => (
+        const BaziPillarTable = ({ chartData, isLoading, isDark, hour, perms, ELEMENT_STYLES, StarLabel, CharacterWithElement }) => (
             <div className={`rounded-xl border overflow-hidden shadow-xl transition-all duration-300 ${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'} ${isDark ? "bg-slate-900/40 border-slate-700" : "bg-white border-slate-200"}`}>
                 {['四柱', '主星', '天干', '地支', '藏干', '副星'].map((label, rIdx) => {
                     const id = ['pillar', 'main', 'stem', 'branch', 'sub_char', 'sub_star'][rIdx];
@@ -231,7 +231,18 @@
                                     {id === 'pillar' && <span className={`font-bold text-[10px] sm:text-sm ${p.label === '日柱' ? (isDark ? "text-yellow-500" : "text-yellow-600") : (isDark ? "text-slate-300" : "text-slate-600")}`}>{p.label}</span>}
                                     {id === 'main' && (hour === -1 && pIdx === 3 ? <span className="opacity-20 text-[10px]">－</span> : <StarLabel starInfo={p.main} isDayMaster={p.label === '日柱'} />)}
                                     {id === 'stem' && (hour === -1 && pIdx === 3 ? <span className="text-2xl font-serif text-emerald-500">吉</span> : <CharacterWithElement char={p.stem} element={p.stemElement} color={p.stemColor} />)}
-                                    {id === 'branch' && (hour === -1 && pIdx === 3 ? <span className="text-2xl font-serif text-emerald-500">時</span> : <CharacterWithElement char={p.branch} element={p.branchElement} color={p.branchColor} />)}
+                                    {id === 'branch' && (hour === -1 && pIdx === 3 ? <span className="text-2xl font-serif text-emerald-500">時</span> : (
+                                        <React.Fragment>
+                                            <CharacterWithElement char={p.branch} element={p.branchElement} color={p.branchColor} />
+                                            {/* 驛馬星標記：寅申巳亥 ＋ 啟用 travelingHorse 權限時，於右下角顯示 🐎 */}
+                                            {perms?.travelingHorse && ['寅', '申', '巳', '亥'].includes(p.branch) && (
+                                                <div className="absolute bottom-0 right-0.5 pointer-events-none text-[10px] sm:text-xs leading-none select-none" title="驛馬星">
+                                                    🐎
+                                                </div>
+                                            )}
+                                        </React.Fragment>
+                                    ))}
+
                                     {id === 'sub_char' && (hour === -1 && pIdx === 3 ? <span className="opacity-20 text-[10px]">－</span> : <div className="grid grid-cols-3 w-full gap-0 px-0.5">{p.sub?.map((s, sIdx) => <div key={sIdx} className="flex justify-center items-center h-8 text-center"><CharacterWithElement char={s.char} element={s.star?.element} color={s.star?.color} isSmall isYueling={s.isYueling} /></div>)}</div>)}
                                     {id === 'sub_star' && (hour === -1 && pIdx === 3 ? <span className="opacity-20 text-[10px]">－</span> : <div className="grid grid-cols-3 w-full gap-0 items-start px-px text-center">{p.sub?.map((s, sIdx) => (<div key={sIdx} className="flex flex-col items-center flex-shrink-0 text-center"><span className={`text-[8px] font-bold mb-0.5 ${isDark ? "text-slate-500" : "text-slate-400"}`}>{s.type}</span>{s.star ? <StarLabel starInfo={s.star} isVertical extraSmall /> : <span className="opacity-10 text-[10px]">－</span>}</div>))}</div>)}
                                 </div>
@@ -245,11 +256,11 @@
         // ============================================================
         // 元件：大運流年區塊 (FortuneSection)
         // ============================================================
-        const FortuneSection = ({ chartData, isDark, perms, ELEMENT_STYLES, CURRENT_REAL_YEAR, StarLabel, RomanceIcon, WealthIcon }) => {
+        const FortuneSection = ({ chartData, isDark, perms, ELEMENT_STYLES, CURRENT_REAL_YEAR, StarLabel, RomanceIcon, WealthIcon, HorseIcon }) => {
             if (!chartData?.fortunePillars) return null;
             return (
                 <React.Fragment>
-                    <div className={`rounded-2xl border ${isDark ? "border-slate-700 shadow-2xl" : "border-slate-800/50 shadow-xl"} overflow-hidden overflow-x-auto no-scrollbar`}><table className="fortune-table"><thead className={isDark ? "bg-slate-900 border-b border-slate-700" : "bg-white"}><tr className="text-slate-400 font-bold uppercase tracking-widest text-[9px] sm:text-[10px]"><th className={`w-[11%] text-center ${isDark ? "bg-slate-900" : "bg-white"}`}>項目</th>{chartData.fortunePillars.map((p, i) => <th key={i} className={`border-l ${isDark ? "border-slate-700" : "border-slate-800/30"} text-center`}>{p.label}</th>)}</tr></thead><tbody className={isDark ? "bg-slate-900/20" : "bg-white"}><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>十神</td>{chartData.fortunePillars.map((p, i) => <td key={i} className={`px-px text-center border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}>{p.label === '童限' ? null : <StarLabel starInfo={p.tenGod} isFortune extraSmall />}</td>)}</tr><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>運程</td>{chartData.fortunePillars.map((p, i) => (<td key={i} className={`text-center border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}>{p.stem ? (<div className="flex flex-col items-center justify-center text-center"><div className="flex gap-px items-center justify-center leading-none font-serif font-bold text-[11px] sm:text-lg"><span className={ELEMENT_STYLES[p.stemColor || "none"].color}>{p.stem}</span><span className={ELEMENT_STYLES[p.branchColor || "none"].color}>{p.branch}</span></div></div>) : <span className="opacity-20 text-[10px]">－</span>}</td>))}</tr><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center border-b-2 ${isDark ? "bg-slate-900/50 border-slate-700" : "bg-white border-slate-800/50"}`}>周歲</td>{chartData.fortunePillars.map((p, i) => <td key={i} className={`text-blue-400 font-bold text-[9px] sm:text-xs border-b-2 text-center border-l ${isDark ? "border-slate-800/50" : "border-slate-800/50"}`}>{p.age}</td>)}</tr><tr><td className={`text-slate-700 font-bold text-[9px] sm:text-xs uppercase text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>流年</td>{chartData.fortunePillars.map((p, pIdx) => { const startOffset = 10 - p.flowYears.length; return (<td key={pIdx} className={`p-0 align-top border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}><div className="flex flex-col">{[...Array(10)].map((_, rowIndex) => { const dataIdx = rowIndex - startOffset; const fy = (dataIdx >= 0) ? p.flowYears[dataIdx] : null; if (!fy) return <div key={rowIndex} className="flow-year-row"></div>; return (<div key={rowIndex} className={`flow-year-row ${rowIndex === 4 ? (isDark ? 'border-b-2 border-slate-600/50' : 'border-b-2 border-slate-400/50') : 'border-b border-slate-800/10'} last:border-0 ${fy.year === CURRENT_REAL_YEAR ? 'highlight-year' : ''}`}><div className="flex items-center gap-px font-serif leading-none font-bold text-[10px] sm:text-[13px] text-center justify-center"><span className={ELEMENT_STYLES[fy.stemColor || "none"].color}>{fy.stem}</span><span className={perms?.flowBranchColor ? "" : (isDark ? 'text-slate-400' : 'text-slate-950')}>{fy.branch}</span></div><RomanceIcon level={fy.romance} isCompact /><WealthIcon level={fy.wealth} isCompact /></div>); })}</div></td>); })}</tr></tbody></table></div>
+                    <div className={`rounded-2xl border ${isDark ? "border-slate-700 shadow-2xl" : "border-slate-800/50 shadow-xl"} overflow-hidden overflow-x-auto no-scrollbar`}><table className="fortune-table"><thead className={isDark ? "bg-slate-900 border-b border-slate-700" : "bg-white"}><tr className="text-slate-400 font-bold uppercase tracking-widest text-[9px] sm:text-[10px]"><th className={`w-[11%] text-center ${isDark ? "bg-slate-900" : "bg-white"}`}>項目</th>{chartData.fortunePillars.map((p, i) => <th key={i} className={`border-l ${isDark ? "border-slate-700" : "border-slate-800/30"} text-center`}>{p.label}</th>)}</tr></thead><tbody className={isDark ? "bg-slate-900/20" : "bg-white"}><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>十神</td>{chartData.fortunePillars.map((p, i) => <td key={i} className={`px-px text-center border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}>{p.label === '童限' ? null : <StarLabel starInfo={p.tenGod} isFortune extraSmall />}</td>)}</tr><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>運程</td>{chartData.fortunePillars.map((p, i) => (<td key={i} className={`relative text-center border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}>{p.stem ? (<div className="flex flex-col items-center justify-center text-center"><div className="flex gap-px items-center justify-center leading-none font-serif font-bold text-[11px] sm:text-lg"><span className={ELEMENT_STYLES[p.stemColor || "none"].color}>{p.stem}</span><span className={ELEMENT_STYLES[p.branchColor || "none"].color}>{p.branch}</span></div></div>) : <span className="opacity-20 text-[10px]">－</span>}<HorseIcon level={p.horse} isCompact minLevel={1} /></td>))}</tr><tr><td className={`font-bold text-slate-500 text-[9px] sm:text-xs text-center border-b-2 ${isDark ? "bg-slate-900/50 border-slate-700" : "bg-white border-slate-800/50"}`}>周歲</td>{chartData.fortunePillars.map((p, i) => <td key={i} className={`text-blue-400 font-bold text-[9px] sm:text-xs border-b-2 text-center border-l ${isDark ? "border-slate-800/50" : "border-slate-800/50"}`}>{p.age}</td>)}</tr><tr><td className={`text-slate-700 font-bold text-[9px] sm:text-xs uppercase text-center ${isDark ? "bg-slate-900/50" : "bg-slate-100"}`}>流年</td>{chartData.fortunePillars.map((p, pIdx) => { const startOffset = 10 - p.flowYears.length; return (<td key={pIdx} className={`p-0 align-top border-l ${isDark ? "border-slate-700/30" : "border-slate-800/10"}`}><div className="flex flex-col">{[...Array(10)].map((_, rowIndex) => { const dataIdx = rowIndex - startOffset; const fy = (dataIdx >= 0) ? p.flowYears[dataIdx] : null; if (!fy) return <div key={rowIndex} className="flow-year-row"></div>; return (<div key={rowIndex} className={`flow-year-row ${rowIndex === 4 ? (isDark ? 'border-b-2 border-slate-600/50' : 'border-b-2 border-slate-400/50') : 'border-b border-slate-800/10'} last:border-0 ${fy.year === CURRENT_REAL_YEAR ? 'highlight-year' : ''}`}><div className="flex items-center gap-px font-serif leading-none font-bold text-[10px] sm:text-[13px] text-center justify-center"><span className={ELEMENT_STYLES[fy.stemColor || "none"].color}>{fy.stem}</span><span className={perms?.flowBranchColor ? "" : (isDark ? 'text-slate-400' : 'text-slate-950')}>{fy.branch}</span></div><RomanceIcon level={fy.romance} isCompact /><WealthIcon level={fy.wealth} isCompact /><HorseIcon level={fy.horse} isCompact /></div>); })}</div></td>); })}</tr></tbody></table></div>
                     {/* ===== 流年點評手風琴（含財運/事業/桃花/健康/避凶分頁） ===== */}
                     {perms?.analysis && <div className="mt-4"><FlowYearAccordion chartData={chartData} isDark={isDark} perms={perms} /></div>}
 
@@ -260,7 +271,7 @@
         // ============================================================
         // 元件：流月流日萬年曆 (CalendarSection)
         // ============================================================
-        const CalendarSection = ({ isDark, calYear, setCalYear, calMonth, setCalMonth, calendarData, isCalLoading, perms, ELEMENT_STYLES, RomanceIcon, WealthIcon }) => {
+        const CalendarSection = ({ isDark, calYear, setCalYear, calMonth, setCalMonth, calendarData, isCalLoading, perms, ELEMENT_STYLES, RomanceIcon, WealthIcon, HorseIcon }) => {
             const today = new Date();
             return (
                 <div className={`p-4 sm:p-6 rounded-2xl border transition-all duration-300 ${isDark ? 'bg-slate-900/40 border-slate-800 shadow-2xl' : 'bg-white border-slate-200 shadow-xl'}`}>
@@ -271,7 +282,7 @@
                             <div className="flex flex-col gap-0.5 sm:gap-1"><span className="text-[6px] sm:text-[8px] font-bold opacity-40 uppercase">查詢月份</span><select value={calMonth} onChange={(e) => setCalMonth(parseInt(e.target.value) || 1)} className={`rounded px-1 py-0.5 text-[10px] sm:text-xs border h-7 sm:h-9 appearance-none w-14 sm:w-24 max-w-[65px] sm:max-w-none ${isDark ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200"}`}>{Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}月</option>)}</select></div>
                         </div>
                     </div>
-                    <div className="mb-8 w-full overflow-hidden"><table className="w-full table-fixed border-collapse border border-slate-700/30"><thead><tr className={isDark ? "bg-slate-800/50" : "bg-slate-100/50"}><th className="p-0.5 border border-slate-700/30 text-[7px] sm:text-xs font-bold w-[13%] sm:w-20">月份</th>{Array.from({ length: 12 }, (_, i) => <th key={i} className="p-0.5 border border-slate-700/30 text-[7px] sm:text-xs font-bold">{i + 1}</th>)}</tr></thead><tbody><tr><td className="p-0.5 border border-slate-700/30 text-[7px] sm:text-xs font-bold text-center">流月</td>{calendarData?.flowMonths?.map((m, i) => (<td key={i} className="p-0 border border-slate-700/30 font-serif font-bold text-center relative h-10 sm:h-12 overflow-hidden text-center"><div className="flex flex-row items-center justify-center gap-0 text-[clamp(8px,2.1vw,14px)] sm:text-base leading-none w-full h-full"><span className={ELEMENT_STYLES[perms?.calendarColors ? m.stemColor : "none"].color}>{m.stem}</span><span className={isDark ? "text-slate-400" : "text-slate-600"}>{m.branch}</span></div><RomanceIcon level={m.romance} isCompact /><WealthIcon level={m.wealth} isCompact /></td>)) || Array.from({ length: 12 }, (_, i) => <td key={i} className="p-1 border border-slate-700/30 opacity-20 text-center text-[7px]">...</td>)}</tr></tbody></table></div>
+                    <div className="mb-8 w-full overflow-hidden"><table className="w-full table-fixed border-collapse border border-slate-700/30"><thead><tr className={isDark ? "bg-slate-800/50" : "bg-slate-100/50"}><th className="p-0.5 border border-slate-700/30 text-[7px] sm:text-xs font-bold w-[13%] sm:w-20">月份</th>{Array.from({ length: 12 }, (_, i) => <th key={i} className="p-0.5 border border-slate-700/30 text-[7px] sm:text-xs font-bold">{i + 1}</th>)}</tr></thead><tbody><tr><td className="p-0.5 border border-slate-700/30 text-[7px] sm:text-xs font-bold text-center">流月</td>{calendarData?.flowMonths?.map((m, i) => (<td key={i} className="p-0 border border-slate-700/30 font-serif font-bold text-center relative h-10 sm:h-12 overflow-hidden text-center"><div className="flex flex-row items-center justify-center gap-0 text-[clamp(8px,2.1vw,14px)] sm:text-base leading-none w-full h-full"><span className={ELEMENT_STYLES[perms?.calendarColors ? m.stemColor : "none"].color}>{m.stem}</span><span className={isDark ? "text-slate-400" : "text-slate-600"}>{m.branch}</span></div><RomanceIcon level={m.romance} isCompact /><WealthIcon level={m.wealth} isCompact /><HorseIcon level={m.horse} isCompact minLevel={1} /></td>)) || Array.from({ length: 12 }, (_, i) => <td key={i} className="p-1 border border-slate-700/30 opacity-20 text-center text-[7px]">...</td>)}</tr></tbody></table></div>
                     {isCalLoading && <div className="h-1 loading-shimmer w-full rounded-full mb-4"></div>}
                     <div className="grid grid-cols-7 gap-1 sm:gap-2">
                         {['一', '二', '三', '四', '五', '六', '日'].map(w => (<div key={w} className="text-center text-[8px] sm:text-[10px] font-black opacity-40 pb-1.5 border-b border-slate-700/20 mb-1.5">週{w}</div>))}
@@ -283,6 +294,7 @@
                                         <div className="flex justify-between items-start w-full h-2.5 sm:h-5"><div className="text-[7px] sm:text-[10px] font-black opacity-30 leading-none pl-0.5">{d.day}</div><div className="relative w-3 h-3 sm:w-5 sm:h-5"><RomanceIcon level={d.romance} isCompact /></div></div>
                                         <div className="flex items-center justify-center gap-0 font-serif font-bold text-[clamp(10px,4.5vw,14px)] sm:text-[14px] leading-none mt-1 sm:mt-1.5"><span className={ELEMENT_STYLES[perms?.calendarColors ? d.stemColor : "none"].color}>{d.stem}</span><span className={isDark ? "text-slate-300" : "text-slate-700"}>{d.branch}</span></div>
                                         <WealthIcon level={d.wealth} isCompact />
+                                        <HorseIcon level={d.horse} isCompact />
                                     </div>
                                 ))}
                             </React.Fragment>
@@ -524,6 +536,119 @@
             );
         };
 
+        // ============================================================
+        // 元件：桃花感應標記 (RomanceIcon) — 定義於 App 外部
+        // perms.romance 與 isDark 由呼叫端作為 prop 傳入
+        // ============================================================
+        const RomanceIcon = ({ level, isCompact = false, perms, isDark }) => {
+            if (!level || !perms?.romance) return null;
+
+            const isHarmony = level > 0;
+
+            let textColor = "";
+            let bgColor = "";
+
+            if (isHarmony) {
+                textColor = "text-pink-500";
+                bgColor = "bg-pink-400/25";
+            } else {
+                if (Math.abs(level) === 2) {
+                    textColor = isDark ? "text-black" : "text-white";
+                    bgColor = isDark ? "bg-white" : "bg-black";
+                } else {
+                    textColor = isDark ? "text-white" : "text-black";
+                    bgColor = "transparent";
+                }
+            }
+
+            const containerSize = isCompact ? "w-3 h-3 sm:w-5 sm:h-5" : "w-3.5 h-3.5 sm:w-6 sm:h-6";
+            const dotSize = isCompact ? "w-2.5 h-2.5 sm:w-4.5 sm:h-4.5" : "w-3 h-3 sm:w-5 sm:h-5";
+            const textSize = isCompact ? "text-[6px] sm:text-[8px]" : "text-[7px] sm:text-[9px]";
+
+            return (
+                <div className={`absolute top-0 right-0 pointer-events-none flex items-center justify-center p-0.5 ${containerSize}`}>
+                    {Math.abs(level) === 2 ? (
+                        <div className={`${dotSize} rounded-full ${bgColor} flex items-center justify-center`}>
+                            <span className={`${textSize} font-black ${textColor} leading-none block text-center transform translate-y-[0.1px]`}>桃</span>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-center w-full h-full">
+                            <span className={`${textSize} font-black ${textColor} leading-none`}>桃</span>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ============================================================
+        // 元件：財旺感應標記 (WealthIcon) — 定義於 App 外部
+        // perms.wealth 由呼叫端作為 prop 傳入
+        // ============================================================
+        const WealthIcon = ({ level, isCompact = false, perms }) => {
+            if (!level || !perms?.wealth) return null;
+
+            const textSize = isCompact ? "text-[6px] sm:text-[8px]" : "text-[7px] sm:text-[9px]";
+            const containerSize = isCompact ? "w-3 h-3 sm:w-5 sm:h-5" : "w-3.5 h-3.5 sm:w-6 sm:h-6";
+
+            return (
+                <div className={`absolute bottom-0 left-0 pointer-events-none flex items-center justify-center p-0.5 ${containerSize}`}>
+                    <div className="relative flex items-center justify-center w-full h-full">
+                        {/* Level 3: 五芒星背景（透明度 50%） */}
+                        {level >= 3 && (
+                            <div className="absolute inset-0 flex items-center justify-center" style={{ opacity: 0.5 }}>
+                                <svg viewBox="0 0 24 24" style={{ width: '100%', height: '100%', fill: '#facc15' }}>
+                                    <path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279-7.416-3.967-7.417 3.967 1.481-8.279-6.064-5.828 8.332-1.151z" />
+                                </svg>
+                            </div>
+                        )}
+                        {/* Level 2: 圓形背景（透明度 45%） */}
+                        {level === 2 && (
+                            <div className="absolute inset-0 flex items-center justify-center" style={{ opacity: 0.45 }}>
+                                <div style={{ width: '90%', height: '90%', borderRadius: '50%', backgroundColor: '#facc15' }}></div>
+                            </div>
+                        )}
+                        {/* 文字層：黃色「財」字 */}
+                        <span className={`${textSize} font-black text-yellow-500 leading-none relative z-10`}>財</span>
+                    </div>
+                </div>
+            );
+        };
+
+        // ============================================================
+        // 元件：驛馬感應標記 (HorseIcon) — 定義於 App 外部
+        // 顯示於格子右下角。年柱感應用橘色圈，日柱感應用黃色圈。
+        // minLevel 控制顯示門檻（預設 10，即只顯示多重感應）：
+        //   運程/流月傳 minLevel={1}，見到任何感應即顯示（作為鏈結觸發標記）。
+        //   流年/流日使用預設 minLevel=10，只顯示多重感應（三刑或相沖已形成雙重疊加）。
+        //   年/日皆以相同橘/黃圖案顯示，確保整條感應鏈視覺一致。
+        // ============================================================
+        const HorseIcon = ({ level, isCompact = false, perms, minLevel = 10 }) => {
+            if (!level || !perms?.travelingHorse) return null;
+            const { y, d } = level;
+            const showY = y >= minLevel;
+            const showD = d >= minLevel;
+            if (!showY && !showD) return null;
+
+            const renderDot = (type) => {
+                // 年柱固定橘色，日柱固定黃色，單次/多重感應均使用相同色系（圖案一致性原則）
+                const cls = type === 'y' ? 'bg-horse-y' : 'bg-horse-d';
+                return (
+                    <div className={`horse-dot ${cls} shadow-sm`} key={type}>
+                        🐎
+                    </div>
+                );
+            };
+
+            return (
+                <div className="absolute bottom-0 right-0 pointer-events-none p-0.5 sm:p-1 max-w-full">
+                    <div className="horse-container">
+                        {showY && renderDot('y')}
+                        {showD && renderDot('d')}
+                    </div>
+                </div>
+            );
+        };
+
         const App = () => {
             const CURRENT_REAL_YEAR = new Date().getFullYear();
             const [isDark, setIsDark] = useState(false);
@@ -584,81 +709,23 @@
                 'none': { color: isDark ? 'text-slate-400' : 'text-slate-950', bg: isDark ? 'bg-slate-800' : 'bg-slate-200' }
             }), [isDark]);
 
-            const RomanceIcon = ({ level, isCompact = false }) => {
-                if (!level || !perms?.romance) return null;
-
-                const isHarmony = level > 0;
-                const isClash = level < 0;
-
-                let textColor = "";
-                let bgColor = "";
-
-                if (isHarmony) {
-                    textColor = "text-pink-500";
-                    bgColor = "bg-pink-400/25";
-                } else {
-                    if (Math.abs(level) === 2) {
-                        textColor = isDark ? "text-black" : "text-white";
-                        bgColor = isDark ? "bg-white" : "bg-black";
-                    } else {
-                        textColor = isDark ? "text-white" : "text-black";
-                        bgColor = "transparent";
-                    }
-                }
-
-                const containerSize = isCompact ? "w-3 h-3 sm:w-5 sm:h-5" : "w-3.5 h-3.5 sm:w-6 sm:h-6";
-                const dotSize = isCompact ? "w-2.5 h-2.5 sm:w-4.5 sm:h-4.5" : "w-3 h-3 sm:w-5 sm:h-5";
-                const textSize = isCompact ? "text-[6px] sm:text-[8px]" : "text-[7px] sm:text-[9px]";
-
-                return (
-                    <div className={`absolute top-0 right-0 pointer-events-none flex items-center justify-center p-0.5 ${containerSize}`}>
-                        {Math.abs(level) === 2 ? (
-                            <div className={`${dotSize} rounded-full ${bgColor} flex items-center justify-center`}>
-                                <span className={`${textSize} font-black ${textColor} leading-none block text-center transform translate-y-[0.1px]`}>桃</span>
-                            </div>
-                        ) : (
-                            <div className="flex items-center justify-center w-full h-full">
-                                <span className={`${textSize} font-black ${textColor} leading-none`}>桃</span>
-                            </div>
-                        )}
-                    </div>
-                );
-            };
-
             // ============================================================
-            // 元件：財旺感應標記 (WealthIcon)
-            // 顯示於日期格左下角，黃色「財」字
+            // Icon 元件包裹層 (App 內部 wrappers)
+            // 三個 Icon 已移至 App 外部定義，此處建立綁定了當前 perms/isDark 的包裹
+            // 讓 FortuneSection / CalendarSection 等下游呼叫端無需重構
             // ============================================================
-            const WealthIcon = ({ level, isCompact = false }) => {
-                // 權限未開放、不是財旺日或等級為 0 則不顯示
-                if (!level || !perms?.wealth) return null;
-
-                const textSize = isCompact ? "text-[6px] sm:text-[8px]" : "text-[7px] sm:text-[9px]";
-                const containerSize = isCompact ? "w-3 h-3 sm:w-5 sm:h-5" : "w-3.5 h-3.5 sm:w-6 sm:h-6";
-
-                return (
-                    <div className={`absolute bottom-0 left-0 pointer-events-none flex items-center justify-center p-0.5 ${containerSize}`}>
-                        <div className="relative flex items-center justify-center w-full h-full">
-                            {/* Level 3: 五芒星背景（透明度 50%，填滿容器後縮放） */}
-                            {level >= 3 && (
-                                <div className="absolute inset-0 flex items-center justify-center" style={{ opacity: 0.5 }}>
-                                    <svg viewBox="0 0 24 24" style={{ width: '100%', height: '100%', fill: '#facc15' }}>
-                                        <path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279-7.416-3.967-7.417 3.967 1.481-8.279-6.064-5.828 8.332-1.151z" />
-                                    </svg>
-                                </div>
-                            )}
-                            {/* Level 2: 圓形背景（透明度 45%） */}
-                            {level === 2 && (
-                                <div className="absolute inset-0 flex items-center justify-center" style={{ opacity: 0.45 }}>
-                                    <div style={{ width: '90%', height: '90%', borderRadius: '50%', backgroundColor: '#facc15' }}></div>
-                                </div>
-                            )}
-                            {/* 文字層：黃色「財」字 */}
-                            <span className={`${textSize} font-black text-yellow-500 leading-none relative z-10`}>財</span>
-                        </div>
-                    </div>
-                );
-            };
+            const BoundRomanceIcon = React.useCallback(
+                (props) => <RomanceIcon {...props} perms={perms} isDark={isDark} />,
+                [perms, isDark]
+            );
+            const BoundWealthIcon = React.useCallback(
+                (props) => <WealthIcon {...props} perms={perms} />,
+                [perms]
+            );
+            const BoundHorseIcon = React.useCallback(
+                (props) => <HorseIcon {...props} perms={perms} />,
+                [perms]
+            );
 
 
             const hourOptions = useMemo(() => {
@@ -1095,7 +1162,7 @@
                         {/* ===== 命盤四柱表格 (元件化) ===== */}
                         <BaziPillarTable
                             chartData={chartData} isLoading={isLoading} isDark={isDark} hour={hour}
-                            ELEMENT_STYLES={ELEMENT_STYLES} StarLabel={StarLabel} CharacterWithElement={CharacterWithElement}
+                            perms={perms} ELEMENT_STYLES={ELEMENT_STYLES} StarLabel={StarLabel} CharacterWithElement={CharacterWithElement}
                         />
 
 
@@ -1138,7 +1205,7 @@
                         <FortuneSection
                             chartData={chartData} isDark={isDark} perms={perms}
                             ELEMENT_STYLES={ELEMENT_STYLES} CURRENT_REAL_YEAR={CURRENT_REAL_YEAR}
-                            StarLabel={StarLabel} RomanceIcon={RomanceIcon} WealthIcon={WealthIcon}
+                            StarLabel={StarLabel} RomanceIcon={BoundRomanceIcon} WealthIcon={BoundWealthIcon} HorseIcon={BoundHorseIcon}
                         />
 
                         {/* ===== 流月流日萬年曆 (元件化) ===== */}
@@ -1146,7 +1213,7 @@
                             isDark={isDark} calYear={calYear} setCalYear={setCalYear}
                             calMonth={calMonth} setCalMonth={setCalMonth}
                             calendarData={calendarData} isCalLoading={isCalLoading}
-                            perms={perms} ELEMENT_STYLES={ELEMENT_STYLES} RomanceIcon={RomanceIcon} WealthIcon={WealthIcon}
+                            perms={perms} ELEMENT_STYLES={ELEMENT_STYLES} RomanceIcon={BoundRomanceIcon} WealthIcon={BoundWealthIcon} HorseIcon={BoundHorseIcon}
                         />
 
 
