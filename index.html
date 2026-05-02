@@ -199,8 +199,11 @@
                                         <div key={u.uid} className={`rounded-xl border p-3 transition-all ${isDark ? 'border-slate-700 bg-slate-800/40' : 'border-slate-200 bg-slate-50'}`}>
                                             <div className="flex items-center justify-between gap-2">
                                                 <div className="flex items-center gap-2 min-w-0">
-                                                    <div className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center text-[10px] font-black shrink-0">{(u.name || u.email || u.uid)[0].toUpperCase()}</div>
-                                                    <div className="flex flex-col leading-tight min-w-0"><span className="text-[11px] font-bold truncate">{u.name || '未知'}</span><span className="text-[9px] opacity-40 truncate">{u.email || u.uid}</span></div>
+                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${u.isPending ? 'bg-amber-500/20 text-amber-500' : 'bg-blue-500/20 text-blue-500'}`}>{(u.name || u.email || u.uid)[0].toUpperCase()}</div>
+                                                    <div className="flex flex-col leading-tight min-w-0">
+                                                        <div className="flex items-center gap-1.5"><span className="text-[11px] font-bold truncate">{u.name || '未知'}</span>{u.isPending && <span className="text-[8px] font-black px-1 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 shrink-0">待生效</span>}</div>
+                                                        <span className="text-[9px] opacity-40 truncate">{u.email || u.uid}</span>
+                                                    </div>
                                                 </div>
                                                 <button onClick={() => setEditingUid(editingUid === u.uid ? null : u.uid)} className={`text-[10px] font-bold px-2 py-1 rounded-md transition-all shrink-0 ${editingUid === u.uid ? 'bg-emerald-500 text-white' : isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}>{editingUid === u.uid ? '收起 ▲' : '編輯 ▼'}</button>
                                             </div>
@@ -832,9 +835,16 @@
                 if (!user || !window.FirebaseSDK) return;
                 const { db, doc, setDoc } = window.FirebaseSDK;
                 const name = saveInputName.trim() || `命盤 ${profiles.length + 1}`;
+                // 找出下一個可用的 profile 槽位（profile_1 ~ profile_4）
+                const usedIds = profiles.map(p => p.id);
+                let nextSlot = null;
+                for (let i = 1; i <= 4; i++) {
+                    if (!usedIds.includes(`profile_${i}`)) { nextSlot = `profile_${i}`; break; }
+                }
+                if (!nextSlot) { alert('已達上限：最多儲存 4 組命盤，請先刪除舊命盤後再儲存。'); return; }
                 try {
                     await setDoc(
-                        doc(db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', `profile_${Date.now()}`),
+                        doc(db, 'artifacts', 'luminous-path-pro', 'users', user.uid, 'profiles', nextSlot),
                         { name, gregYear, month, day, hour, minute, gender, isDst, order: profiles.length, createdAt: Date.now(), category: chartData?.pillars?.[2]?.stemElement || '未分類' }
                     );
                     setSaveInputName('');
@@ -967,7 +977,10 @@
                                 setAdminPerms({ ...DEFAULT_PERMS });
                                 setAdminMsg('✅ 已找到用戶（套用預設值，儲存後建立索引）');
                             } else {
-                                setAdminMsg('❌ 查無此 Email（對方需先到網站登入一次）');
+                                // 完全找不到：提供預先授權選項
+                                setAdminFoundUser({ email, name: '（尚未登入）', isPending: true });
+                                setAdminPerms({ ...DEFAULT_PERMS });
+                                setAdminMsg('⚠️ 查無此帳號登入紀錄，可預先授權（對方登入後自動生效）');
                             }
                         } catch (fe) { setAdminMsg('❌ 查詢失敗'); }
                         return;
@@ -1008,17 +1021,23 @@
 
 
             const handleSaveAdminPerms = useCallback(async () => {
-                if (!adminUid || !user) { setAdminMsg('❌ 請先搜尋用戶'); return; }
+                if (!user) { setAdminMsg('❌ 請先搜尋用戶'); return; }
+                // 支援 email-only 預授權（使用者尚未登入過）
+                const isPendingEmailAuth = !adminUid && adminFoundUser?.isPending && adminFoundUser?.email;
+                if (!adminUid && !isPendingEmailAuth) { setAdminMsg('❌ 請先搜尋用戶'); return; }
                 setAdminSaving(true); setAdminMsg('');
                 try {
                     const token = await user.getIdToken();
+                    const body = isPendingEmailAuth
+                        ? { type: 'setPermissions', targetEmail: adminFoundUser.email, permissions: adminPerms, userInfo: adminFoundUser }
+                        : { type: 'setPermissions', targetUid: adminUid, permissions: adminPerms, userInfo: adminFoundUser };
                     const res = await fetch(WORKER_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                        body: JSON.stringify({ type: 'setPermissions', targetUid: adminUid, permissions: adminPerms, userInfo: adminFoundUser })
+                        body: JSON.stringify(body)
                     });
                     const data = await res.json();
-                    if (data.ok) { setAdminMsg('✅ 已成功儲存'); loadGrantedUsers(); }
+                    if (data.ok) { setAdminMsg(isPendingEmailAuth ? '✅ 預授權已儲存，對方登入後自動生效' : '✅ 已成功儲存'); loadGrantedUsers(); }
                     else setAdminMsg(`❌ 錯誤: ${data.error}`);
                 } catch (e) { setAdminMsg('❌ 儲存失敗'); }
                 finally { setAdminSaving(false); }
@@ -1031,10 +1050,14 @@
                 setGrantedUsers(prev => prev.map(u => u.uid === targetUser.uid ? { ...u, perms: newPerms } : u));
                 try {
                     const token = await user.getIdToken();
+                    // 預授權用戶（尚未登入過）以 email 為鍵更新
+                    const body = targetUser.isPending
+                        ? { type: 'setPermissions', targetEmail: targetUser.email, permissions: newPerms, userInfo: info }
+                        : { type: 'setPermissions', targetUid: targetUser.uid, permissions: newPerms, userInfo: info };
                     await fetch(WORKER_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                        body: JSON.stringify({ type: 'setPermissions', targetUid: targetUser.uid, permissions: newPerms, userInfo: info })
+                        body: JSON.stringify(body)
                     });
                 } catch (e) { console.error('inline save failed', e); }
             }, [user]);
