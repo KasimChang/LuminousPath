@@ -174,7 +174,7 @@
                                             <div className="flex flex-col leading-tight"><span className="text-xs font-bold">{adminFoundUser.name || '未知姓名'}</span><span className="text-[10px] opacity-40">{adminFoundUser.email}</span></div>
                                         </div>
                                         <div className="grid grid-cols-1 gap-2">
-                                            {[['colors', '四柱/大運著色'], ['flowBranchColor', '流年地支著色'], ['calendarColors', '萬年曆著色'], ['romance', '桃花感應標記'], ['wealth', '財旺感應標記'], ['travelingHorse', '驛馬感應標記'], ['strength', '身強身弱分析'], ['analysis', '命盤文字分析']].map(([key, label]) => (
+                                            {[['colors', '四柱/大運著色'], ['flowBranchColor', '流年地支著色'], ['calendarColors', '萬年曆著色'], ['romance', '桃花感應標記'], ['wealth', '財旺感應標記'], ['travelingHorse', '驛馬感應標記'], ['strength', '身強身弱分析'], ['analysis', '命盤文字分析'], ['villain', '犯小人日標記'], ['health', '健康注意日標記']].map(([key, label]) => (
                                                 <label key={key} className="flex items-center justify-between cursor-pointer">
                                                     <span className="text-xs font-medium">{label}</span>
                                                     <div className="relative" onClick={() => setAdminPerms(p => ({ ...p, [key]: !p[key] }))}>
@@ -207,8 +207,8 @@
                                                 </div>
                                                 <button onClick={() => setEditingUid(editingUid === u.uid ? null : u.uid)} className={`text-[10px] font-bold px-2 py-1 rounded-md transition-all shrink-0 ${editingUid === u.uid ? 'bg-emerald-500 text-white' : isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}>{editingUid === u.uid ? '收起 ▲' : '編輯 ▼'}</button>
                                             </div>
-                                            {editingUid !== u.uid && (<div className="flex flex-wrap gap-1 mt-2">{[['colors', '著色'], ['flowBranchColor', '流年色'], ['calendarColors', '曆色'], ['romance', '桃花'], ['wealth', '財旺'], ['travelingHorse', '驛馬'], ['strength', '強弱'], ['analysis', '分析']].map(([k, lbl]) => (<span key={k} className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${u.perms?.[k] ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : isDark ? 'bg-slate-700 text-slate-600' : 'bg-slate-200 text-slate-400'}`}>{lbl}</span>))}</div>)}
-                                            {editingUid === u.uid && (<div className={`mt-3 pt-3 border-t grid grid-cols-1 gap-2 ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>{[['colors', '四柱/大運著色'], ['flowBranchColor', '流年地支著色'], ['calendarColors', '萬年曆著色'], ['romance', '桃花感應標記'], ['wealth', '財旺感應標記'], ['travelingHorse', '驛馬感應標記'], ['strength', '身強身弱分析'], ['analysis', '命盤文字分析']].map(([k, lbl]) => (<label key={k} className="flex items-center justify-between cursor-pointer"><span className="text-[11px] font-medium">{lbl}</span><div className="relative" onClick={() => handleInlineToggle(u, k, !u.perms?.[k])}><div className={`w-9 h-5 rounded-full transition-colors ${u.perms?.[k] ? 'bg-emerald-500' : isDark ? 'bg-slate-700' : 'bg-slate-300'}`}><div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${u.perms?.[k] ? 'translate-x-4' : 'translate-x-0.5'}`} /></div></div></label>))}</div>)}
+                                            {editingUid !== u.uid && (<div className="flex flex-wrap gap-1 mt-2">{[['colors', '著色'], ['flowBranchColor', '流年色'], ['calendarColors', '曆色'], ['romance', '桃花'], ['wealth', '財旺'], ['travelingHorse', '驛馬'], ['strength', '強弱'], ['analysis', '分析'], ['villain', '犯小人'], ['health', '健康']].map(([k, lbl]) => (<span key={k} className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${u.perms?.[k] ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : isDark ? 'bg-slate-700 text-slate-600' : 'bg-slate-200 text-slate-400'}`}>{lbl}</span>))}</div>)}
+                                            {editingUid === u.uid && (<div className={`mt-3 pt-3 border-t grid grid-cols-1 gap-2 ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>{[['colors', '四柱/大運著色'], ['flowBranchColor', '流年地支著色'], ['calendarColors', '萬年曆著色'], ['romance', '桃花感應標記'], ['wealth', '財旺感應標記'], ['travelingHorse', '驛馬感應標記'], ['strength', '身強身弱分析'], ['analysis', '命盤文字分析'], ['villain', '犯小人日標記'], ['health', '健康注意日標記']].map(([k, lbl]) => (<label key={k} className="flex items-center justify-between cursor-pointer"><span className="text-[11px] font-medium">{lbl}</span><div className="relative" onClick={() => handleInlineToggle(u, k, !u.perms?.[k])}><div className={`w-9 h-5 rounded-full transition-colors ${u.perms?.[k] ? 'bg-emerald-500' : isDark ? 'bg-slate-700' : 'bg-slate-300'}`}><div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${u.perms?.[k] ? 'translate-x-4' : 'translate-x-0.5'}`} /></div></div></label>))}</div>)}
                                         </div>
                                     ))}
                                 </div>
@@ -274,7 +274,7 @@
         // ============================================================
         // 元件：流月流日萬年曆 (CalendarSection)
         // ============================================================
-        const CalendarSection = ({ isDark, calYear, setCalYear, calMonth, setCalMonth, calendarData, isCalLoading, perms, ELEMENT_STYLES, RomanceIcon, WealthIcon, HorseIcon }) => {
+        const CalendarSection = ({ isDark, calYear, setCalYear, calMonth, setCalMonth, calendarData, isCalLoading, perms, ELEMENT_STYLES, RomanceIcon, WealthIcon, HorseIcon, VillainIcon, HealthIcon }) => {
             const today = new Date();
             return (
                 <div className={`p-4 sm:p-6 rounded-2xl border transition-all duration-300 ${isDark ? 'bg-slate-900/40 border-slate-800 shadow-2xl' : 'bg-white border-slate-200 shadow-xl'}`}>
@@ -294,10 +294,13 @@
                                 {Array.from({ length: calendarData.days[0].weekday }).map((_, i) => (<div key={`empty-${i}`} className="h-12 sm:h-16 opacity-0"></div>))}
                                 {calendarData.days.map((d, idx) => (
                                     <div key={idx} className={`p-0.5 sm:p-2 rounded-lg border flex flex-col transition-all relative h-12 sm:h-auto ${d.day === today.getDate() && calMonth === (today.getMonth() + 1) && calYear === today.getFullYear() ? 'ring-1.5 ring-blue-500 bg-blue-500/5 shadow-inner' : isDark ? 'bg-slate-950 border-slate-800 shadow-sm' : 'bg-white border-slate-200 shadow-sm'}`}>
-                                        <div className="flex justify-between items-start w-full h-2.5 sm:h-5"><div className="text-[7px] sm:text-[10px] font-black opacity-30 leading-none pl-0.5">{d.day}</div><div className="relative w-3 h-3 sm:w-5 sm:h-5"><RomanceIcon level={d.romance} isCompact /></div></div>
+                                        <div className="flex items-start w-full h-2.5 sm:h-5"><div className="text-[7px] sm:text-[10px] font-black opacity-30 leading-none pl-0.5">{d.day}</div></div>
+                                        <RomanceIcon level={d.romance} isCompact />
                                         <div className="flex items-center justify-center gap-0 font-serif font-bold text-[clamp(10px,4.5vw,14px)] sm:text-[14px] leading-none mt-1 sm:mt-1.5"><span className={ELEMENT_STYLES[perms?.calendarColors ? d.stemColor : "none"].color}>{d.stem}</span><span className={isDark ? "text-slate-300" : "text-slate-700"}>{d.branch}</span></div>
                                         <WealthIcon level={d.wealth} isCompact />
                                         <HorseIcon level={d.horse} isCompact />
+                                        <VillainIcon show={d.villain} isCompact />
+                                        <HealthIcon show={d.health} isCompact />
                                     </div>
                                 ))}
                             </React.Fragment>
@@ -565,11 +568,11 @@
             }
 
             const containerSize = isCompact ? "w-3 h-3 sm:w-5 sm:h-5" : "w-3.5 h-3.5 sm:w-6 sm:h-6";
-            const dotSize = isCompact ? "w-2.5 h-2.5 sm:w-4.5 sm:h-4.5" : "w-3 h-3 sm:w-5 sm:h-5";
+            const dotSize = isCompact ? "w-2.5 h-2.5 sm:w-4 sm:h-4" : "w-3 h-3 sm:w-5 sm:h-5";
             const textSize = isCompact ? "text-[6px] sm:text-[8px]" : "text-[7px] sm:text-[9px]";
 
             return (
-                <div className={`absolute top-0 right-0 pointer-events-none flex items-center justify-center p-0.5 ${containerSize}`}>
+                <div className={`absolute top-0 right-0 z-10 pointer-events-none flex items-center justify-center p-0.5 ${containerSize}`}>
                     {Math.abs(level) === 2 ? (
                         <div className={`${dotSize} rounded-full ${bgColor} flex items-center justify-center`}>
                             <span className={`${textSize} font-black ${textColor} leading-none block text-center transform translate-y-[0.1px]`}>桃</span>
@@ -592,10 +595,11 @@
 
             const textSize = isCompact ? "text-[6px] sm:text-[8px]" : "text-[7px] sm:text-[9px]";
             const containerSize = isCompact ? "w-3 h-3 sm:w-5 sm:h-5" : "w-3.5 h-3.5 sm:w-6 sm:h-6";
+            const dotSize = isCompact ? "w-2.5 h-2.5 sm:w-4 sm:h-4" : "w-3 h-3 sm:w-5 sm:h-5";
 
             return (
                 <div className={`absolute bottom-0 left-0 pointer-events-none flex items-center justify-center p-0.5 ${containerSize}`}>
-                    <div className="relative flex items-center justify-center w-full h-full">
+                    <div className={`relative flex items-center justify-center ${dotSize}`}>
                         {/* Level 3: 五芒星背景（透明度 50%） */}
                         {level >= 3 && (
                             <div className="absolute inset-0 flex items-center justify-center" style={{ opacity: 0.5 }}>
@@ -607,7 +611,7 @@
                         {/* Level 2: 圓形背景（透明度 45%） */}
                         {level === 2 && (
                             <div className="absolute inset-0 flex items-center justify-center" style={{ opacity: 0.45 }}>
-                                <div style={{ width: '90%', height: '90%', borderRadius: '50%', backgroundColor: '#facc15' }}></div>
+                                <div className="w-full h-full rounded-full" style={{ backgroundColor: '#facc15' }}></div>
                             </div>
                         )}
                         {/* 文字層：黃色「財」字 */}
@@ -652,6 +656,43 @@
             );
         };
 
+        // ============================================================
+        // 元件：犯小人日標記 (VillainIcon) — 定義於 App 外部
+        // 顯示於格子右下角，黑色圓形底座。
+        // show 己由後端按權限過濾後造入，元件本身僅造染。
+        // ============================================================
+        const VillainIcon = ({ show, isCompact = false }) => {
+            if (!show) return null;
+            const containerSize = isCompact ? "w-3 h-3 sm:w-5 sm:h-5" : "w-3.5 h-3.5 sm:w-6 sm:h-6";
+            const dotSize = isCompact ? "w-2.5 h-2.5 sm:w-4 sm:h-4" : "w-3 h-3 sm:w-5 sm:h-5";
+            const textSize = isCompact ? "text-[6px] sm:text-[8px]" : "text-[7px] sm:text-[9px]";
+            return (
+                <div className={`absolute bottom-0 right-0 z-10 pointer-events-none flex items-center justify-center p-0.5 ${containerSize}`}>
+                    <div className={`${dotSize} rounded-full bg-black flex items-center justify-center`}>
+                        <span className={`${textSize} font-black text-white leading-none`}>人</span>
+                    </div>
+                </div>
+            );
+        };
+
+        // ============================================================
+        // 元件：健康注意日標記 (HealthIcon) — 定義於 App 外部
+        // 顯示於格子右側中央（3點鐘方向），灰色圓形底座。
+        // ============================================================
+        const HealthIcon = ({ show, isCompact = false }) => {
+            if (!show) return null;
+            const containerSize = isCompact ? "w-3 h-3 sm:w-5 sm:h-5" : "w-3.5 h-3.5 sm:w-6 sm:h-6";
+            const dotSize = isCompact ? "w-2.5 h-2.5 sm:w-4 sm:h-4" : "w-3 h-3 sm:w-5 sm:h-5";
+            const textSize = isCompact ? "text-[6px] sm:text-[8px]" : "text-[7px] sm:text-[9px]";
+            return (
+                <div className={`absolute top-1/2 -translate-y-1/2 right-0 z-10 pointer-events-none flex items-center justify-center p-0.5 ${containerSize}`}>
+                    <div className={`${dotSize} rounded-full bg-red-500 flex items-center justify-center`}>
+                        <span className={`${textSize} font-black text-white leading-none`}>健</span>
+                    </div>
+                </div>
+            );
+        };
+
         const App = () => {
             const CURRENT_REAL_YEAR = new Date().getFullYear();
             const [isDark, setIsDark] = useState(false);
@@ -679,7 +720,7 @@
             const [showAdminPanel, setShowAdminPanel] = useState(false);
             const [adminEmail, setAdminEmail] = useState('');
             const [adminUid, setAdminUid] = useState('');
-            const [adminPerms, setAdminPerms] = useState({ colors: true, flowBranchColor: true, romance: false, wealth: false, analysis: false, calendarColors: true });
+            const [adminPerms, setAdminPerms] = useState({ colors: true, flowBranchColor: true, romance: false, wealth: false, analysis: false, calendarColors: true, villain: false, health: false });
             const [adminMsg, setAdminMsg] = useState('');
             const [adminSaving, setAdminSaving] = useState(false);
             const [adminFoundUser, setAdminFoundUser] = useState(null);
@@ -728,6 +769,14 @@
             const BoundHorseIcon = React.useCallback(
                 (props) => <HorseIcon {...props} perms={perms} />,
                 [perms]
+            );
+            const BoundVillainIcon = React.useCallback(
+                (props) => <VillainIcon {...props} />,
+                []
+            );
+            const BoundHealthIcon = React.useCallback(
+                (props) => <HealthIcon {...props} />,
+                []
             );
 
 
@@ -949,7 +998,7 @@
             useEffect(() => { if (showAdminPanel && isAdmin) loadGrantedUsers(); }, [showAdminPanel, isAdmin, loadGrantedUsers]);
 
             // --- Admin Panel: Email 查詢（KV → Firestore 雙重 fallback）---
-            const DEFAULT_PERMS = { colors: true, flowBranchColor: true, romance: false, analysis: false, calendarColors: true };
+            const DEFAULT_PERMS = { colors: true, flowBranchColor: true, romance: false, analysis: false, calendarColors: true, villain: false, health: false };
             const handleFetchAdminPerms = useCallback(async () => {
                 if (!adminEmail.trim() || !user) return;
                 const email = adminEmail.trim().toLowerCase();
@@ -1268,7 +1317,7 @@
                             isDark={isDark} calYear={calYear} setCalYear={setCalYear}
                             calMonth={calMonth} setCalMonth={setCalMonth}
                             calendarData={calendarData} isCalLoading={isCalLoading}
-                            perms={perms} ELEMENT_STYLES={ELEMENT_STYLES} RomanceIcon={BoundRomanceIcon} WealthIcon={BoundWealthIcon} HorseIcon={BoundHorseIcon}
+                            perms={perms} ELEMENT_STYLES={ELEMENT_STYLES} RomanceIcon={BoundRomanceIcon} WealthIcon={BoundWealthIcon} HorseIcon={BoundHorseIcon} VillainIcon={BoundVillainIcon} HealthIcon={BoundHealthIcon}
                         />
 
 
